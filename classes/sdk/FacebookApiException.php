@@ -19,9 +19,11 @@
  * Thrown when an API call returns an exception.
  *
  * @author Naitik Shah <naitik@facebook.com>
+ *
+ * @package Facebook
  */
-class FacebookApiException extends Exception
-{
+class FacebookApiException extends Exception {
+
   /**
    * The result from the API server that represents the exception information.
    */

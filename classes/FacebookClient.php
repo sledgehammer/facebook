@@ -31,7 +31,7 @@ class FacebookClient extends Object {
 	 * Automatic paging is limited to X pages.
 	 * @var int
 	 */
-	public $automaticPagerLimit = 25;
+	public $automaticPagerLimit = 10;
 
 
 	/**
@@ -341,8 +341,16 @@ class FacebookClient extends Object {
 	 * @param string $requestId
 	 */
 	function deleteAppRequest($requestId) {
-// @todo  Valideren of het id een app request is?
+		// @todo  Valideren of het id een app request is?
 		$this->delete('/'.$requestId);
+	}
+
+	/**
+	 *
+	 * @param string $userId
+	 */
+	function getAppRequestsFor($userId) {
+		return $this->all('/'.$userId.'/apprequests');
 	}
 
 	/**
@@ -393,7 +401,7 @@ class FacebookClient extends Object {
 			}
 			$response = $this->api($url->path, 'GET', $url->query); // fetch page
 			$data = array_merge($data, $response['data']);
-			if (empty($response['paging']['next'])) {
+			if (empty($response['paging']['next']) == false) {
 				$url = new URL($response['paging']['next']);
 			} else {
 				// no more pages

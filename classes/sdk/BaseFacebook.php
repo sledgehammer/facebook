@@ -23,9 +23,10 @@
  * the file.
  *
  * @author Naitik Shah <naitik@facebook.com>
+ *
  */
-abstract class BaseFacebook extends Object
-{
+abstract class BaseFacebook extends Object {
+
   /**
    * Version.
    */

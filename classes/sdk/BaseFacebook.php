@@ -25,7 +25,7 @@
  * @author Naitik Shah <naitik@facebook.com>
  *
  */
-abstract class BaseFacebook extends Object {
+abstract class BaseFacebook extends Sledgehammer\Object {
 
   /**
    * Version.

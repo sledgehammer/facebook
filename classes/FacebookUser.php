@@ -572,17 +572,14 @@ class FacebookUser extends GraphObject {
 			parent::__construct($id, $parameters);
 			return;
 		}
-		if ($parameters !== null) {
+		if ($parameters === null) { // Fetch all allowed fields?
+			parent::__construct($id, array(
+				'fields' => implode(',', $this->getAllowedFields(array('id' => $id))),
+				'local_cache' => true
+			));
+		} else {
 			parent::__construct($id, $parameters);
-			return;
 		}
-		if (isset($_SESSION['__Facebook__']['cache'][$id])) {
-			parent::__construct($_SESSION['__Facebook__']['cache'][$id], $parameters);
-			return;
-		}
-		parent::__construct($id, array('fields' => $this->getAllowedFields(array('id' => $id))));
-		// Cache userdata
-		$_SESSION['__Facebook__']['cache'][$id] = get_public_vars($this);
 	}
 
 	/**
@@ -624,26 +621,22 @@ class FacebookUser extends GraphObject {
 		$fb = Facebook::getInstance();
 		if ($property === 'friends') {
 			$path = $this->id.'/friends';
-			if (isset($_SESSION['__Facebook__']['cache'][$path])) {
-				$response = $_SESSION['__Facebook__']['cache'][$path];
-			} else {
-				$friends = array();
-
-				$response = $fb->all($path, array('fields' => $this->getAllowedFields()));
-				$_SESSION['__Facebook__']['cache'][$path] = $response;
-			}
+			$friends = array();
+			$response = $fb->all($path, array('fields' => $this->getAllowedFields(), 'local_cache' => true));
 			foreach ($response as $friend) {
 				$friends[] = new FacebookUser($friend);
 			}
+			$state = $this->_state;
 			$this->_state = 'construct';
 			$this->$property = new Collection($friends);
-			$this->_state = 'ready';
+			$this->_state = $state;
 			return $this->$property;
 		}
 		if ($property === 'mutualfriends') {
+			$state = $this->_state;
 			$this->_state = 'construct';
 			$this->$property = $this->getMutualfriendWith($fb->getUser());
-			$this->_state = 'ready';
+			$this->_state = $state;
 			return $this->$property;
 		}
 		return parent::__get($property);

@@ -8,7 +8,8 @@ Object oriented API for using Facebook's Social Graph.
 * Gives hint which permissions are missing when you access a protected property.
 * Fetches connected objects as properties. $me->friends
 * Connected objects are Collection object, for easy filtering & sorting. $me->friends->orderBy('last_name');
-* Caches "/me" and "/me/friends" when using the FacebookUser object for improved performance.
+* Caches userfields and friends when using the FacebookUser object for improved performance.
+* Lazily fetches objectdata. No api calls for data you don't use.
 
 ## Improvements in the Facebook class.
 
@@ -20,6 +21,7 @@ Object oriented API for using Facebook's Social Graph.
  * api() accepts $parameters['fields'] as an array.
  * all() fetches multiple pages in a paginated result and returns the merged array.
  * Singleton pattern, access Facebook from anywhere in your application.
+ * Add "local_cache"=> true to the parameters and the the results of the api call are cached.
 
 ## Idea's / Todo
 
@@ -28,5 +30,4 @@ Object oriented API for using Facebook's Social Graph.
 * Implement all documented facebook entities & connections.
 * Implement writing api as methods in the GraphObject.
 * Implement ActiveRecord methods. save(), delete()
-* Lazily fetch the result object when creating a post.
 * Give hint for connection/relation permissions.

@@ -18,40 +18,50 @@ class GraphObject extends Object {
 	public $id;
 
 	/**
-	 * Used for dynamicly adding properties.
+	 * new: GraphObject created with id: null
+	 * constuct: Allow new properties to be added.
+	 * id_only: id and parameters are but no api call to fetch fields is made.
+	 * ready: fields are retrieved cia the facebook api.
+	 *
 	 * @var string
 	 */
-	protected $_state = 'invalid';
+	protected $_state = 'new';
+	/**
+	 * Facebook API call parameters, only available in "id_only" state.
+	 * @var array
+	 */
+	private $_apiParameters;
 
 	/**
 	 * Constructor
 	 * @param string $id
-	 * @param array $parameters
+	 * @param array $parameters Facebook API call parameters (fields, etc)
 	 */
 	function __construct($id, $parameters = array()) {
+		// Unset all properties
+		$properties = array_keys(get_public_vars($this));
+		unset($properties[array_search('id', $properties)]); // keep the id property
+		foreach ($properties as $property) {
+			unset($this->$property);
+		}
 		if ($id === null) {
-			// Unset all properties
-			$properties = array_keys(get_public_vars($this));
-			foreach ($properties as $property) {
-				unset($this->$property);
-			}
 			return;
 		}
-		$this->_state = 'construct';
 		if (is_array($id)) {
-			$data = $id;
+			$this->_state = 'construct';
+			set_object_vars($this, $id);
+			$this->_state = 'ready';
+			unset($this->_apiParameters);
+		} elseif ($preload) {
+			$this->_state = 'construct';
+			set_object_vars($this, Facebook::getInstance()->get($id, $parameters));
+			$this->_state = 'ready';
+			unset($this->_apiParameters);
 		} else {
-			$data = Facebook::getInstance()->get($id, $parameters);
+			$this->id = $id;
+			$this->_apiParameters = $parameters;
+			$this->_state = 'id_only';
 		}
-		set_object_vars($this, $data);
-		// Remove properties not included in the data.
-		$properties = array_keys(get_public_vars($this));
-		foreach ($properties as $property) {
-			if (isset($data[$property]) === false) {
-				unset($this->$property);
-			}
-		}
-		$this->_state = 'ready';
 	}
 
 	/**
@@ -73,8 +83,22 @@ class GraphObject extends Object {
 	 * @return mixed
 	 */
 	function __get($property) {
+		if (empty($this->id)) {
+			return parent::__get($property);
+		}
 		$connections = $this->getKnownConnections();
 		if (array_key_exists($property, $connections) === false) { // not a (known) connection?
+			if ($this->_state === 'id_only') {
+				$fields = Facebook::getInstance()->get($this->id, $this->_apiParameters);
+
+				$this->_state = 'construct';
+				set_object_vars($this, $fields);
+				$this->_state = 'ready';
+				unset($this->_apiParameters);
+				if (array_key_exists($property, $fields)) {
+					return $fields[$property];
+				}
+			}
 			$fields = get_public_vars(get_class($this));
 			if (array_key_exists($property, $fields)) { // is the field defined in the class?
 				$permissions = static::getFieldPermissions(array('id' => $this->id));
@@ -85,6 +109,7 @@ class GraphObject extends Object {
 			}
 		}
 		try {
+			$state = $this->_state;
 			// Retrieve a connection
 			if (isset($connections[$property]) && $connections[$property] !== '\Sledgehammer\GraphObject') {
 				$class = $connections[$property];
@@ -98,13 +123,14 @@ class GraphObject extends Object {
 			foreach ($response as $data) {
 				$objects[] = new $class($data);
 			}
+
 			$this->_state = 'construct';
 			$this->$property = new Collection($objects);
-			$this->_state = 'ready';
+			$this->_state = $state;
 			return $this->$property;
 		} catch (\Exception $e) {
 			report_exception($e);
-			$this->_state = 'ready';
+			$this->_state = $state;
 			return parent::__get($property);
 		}
 	}

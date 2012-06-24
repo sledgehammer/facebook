@@ -34,7 +34,6 @@ class Facebook extends \BaseFacebook {
 	 */
 	public $logLimit = 50;
 
-
 	/**
 	 * The default limit for paged results retrieved via Facebook->all().
 	 * 10 seems low, but with 1 a 2 sec per api call, it already takes 20+ sec.
@@ -105,7 +104,6 @@ class Facebook extends \BaseFacebook {
 				}
 			}
 			return true;
-
 		}
 		$parameters['scope'] = implode(',', $permissions);
 		$this->clearAllPersistentData();
@@ -234,6 +232,7 @@ class Facebook extends \BaseFacebook {
 	function delete($path, $parameters = array()) {
 		return $this->api($path, 'DELETE', $parameters);
 	}
+
 	/**
 	 * Make an API call.
 	 *
@@ -246,6 +245,14 @@ class Facebook extends \BaseFacebook {
 		if (isset($arguments[2]['fields']) && is_array($arguments[2]['fields'])) {
 			$arguments[2]['fields'] = implode(',', $arguments[2]['fields']);
 		}
+		if (isset($arguments[2]['local_cache']) && $arguments[2]['local_cache']) { // Enable caching for the request?
+			$cache = sha1(json_encode($arguments));
+			if (isset($_SESSION['__Facebook__']['cache'][$cache])) {
+				return $_SESSION['__Facebook__']['cache'][$cache]; // Cache hit
+			}
+			unset($arguments[2]['local_cache']);
+		}
+
 		$response = call_user_func_array('parent::api', $arguments);
 		// Log resquest
 		$this->executionTime += (microtime(true) - $start);
@@ -255,6 +262,9 @@ class Facebook extends \BaseFacebook {
 				'request' => $arguments,
 				'exectutionTime' => (microtime(true) - $start)
 			);
+		}
+		if (isset($cache)) {
+			$_SESSION['__Facebook__']['cache'][$cache] = $response;
 		}
 		return $response;
 	}
@@ -276,9 +286,7 @@ class Facebook extends \BaseFacebook {
 			$this->setPersistentData('permissions', $permissions);
 		}
 		return $permissions;
-
 	}
-
 
 	protected function clearAllPersistentData() {
 		unset($_SESSION['__Facebook__']);

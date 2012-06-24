@@ -37,9 +37,10 @@ class Facebook extends \BaseFacebook {
 
 	/**
 	 * The default limit for paged results retrieved via Facebook->all().
+	 * 10 seems low, but with 1 a 2 sec per api call, it already takes 20+ sec.
 	 * @var int
 	 */
-	private $defaultPageLimit = 10;
+	public $defaultPagerLimit = 10;
 
 	/**
 	 * Global facebook instance
@@ -160,31 +161,46 @@ class Facebook extends \BaseFacebook {
 	 * @param array $parameters
 	 * @return array
 	 */
-	function all($path, $parameters = array(), $pageLimit = null) {
+	function all($path, $parameters = array(), $pagerLimit = null) {
 		if (isset($parameters['limit']) || isset($parameters['offset'])) { // The request is for a specific page
 			return $this->api($path, 'GET', $parameters);
 		}
-		if ($pageLimit === null) {
-			$pageLimit = $this->defaultPageLimit = 10;
+		if ($pagerLimit === null) {
+			$pagerLimit = $this->defaultPagerLimit = 10;
 		}
 		$page = 0;
-		$data = array();
+		$pages = array();
 		$url = new URL($path);
 		$url->query = $parameters;
 		while (true) {
-			if ($page > $pageLimit) {
-				notice('Max pages was reached');
+			if ($page > $pagerLimit) {
+				notice('Maximum pager limit ('.$pagerLimit.') was reached');
 				break;
 			}
 			$response = $this->api($url->path, 'GET', $url->query); // fetch page
-			$data = array_merge($data, $response['data']);
+			if ($page === 1 && $pages[0] === $response['data']) { // Does page 2 have identical results as page 1?
+				// Bug/loop detected in facebook's pagin.
+				// Example loop: /me/mutualfriends/$userid
+				return $response['data']; // return a single.
+			}
+			$pages[$page] = $response['data'];
 			if (empty($response['paging']['next']) == false) {
 				$url = new URL($response['paging']['next']);
+				if (isset($url->query['limit']) && ((count($response['data']) / $url->query['limit']) < 0.10)) { // This page has less than 10% results of the limit?
+					// 90+% is filtered out or there is an error/loop in facebooks paging
+					// Example empty 2nd page: /me/friends
+					// Example loop: /me/mutualfriends/$userid
+					break; // Assumme facebook loop/empty second page.
+				}
 			} else {
 				// no more pages
 				break;
 			}
 			$page++;
+		}
+		$data = array();
+		foreach ($pages as $page) {
+			$data = array_merge($data, $page);
 		}
 		return $data;
 	}
@@ -193,10 +209,18 @@ class Facebook extends \BaseFacebook {
 	 * Short notation for the api POST requests
 	 *
 	 * @param string $path
-	 * @param array $parameters
+	 * @param array|GraphObject $parameters
 	 * @return mixed
 	 */
 	function post($path, $parameters = array()) {
+		if (is_object($parameters)) {
+			$parameters = get_public_vars($parameters);
+			foreach ($parameters as $field => $value) {
+				if ($value instanceof Collection) {
+					unset($parameters[$field]);
+				}
+			}
+		}
 		return $this->api($path, 'POST', $parameters);
 	}
 

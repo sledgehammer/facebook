@@ -4,12 +4,15 @@
  */
 namespace Sledgehammer;
 /**
+ * A user profile as represented in the Graph API.
+ * @link https://developers.facebook.com/docs/reference/api/user/
  * @package Facebook
  */
 class FacebookUser extends GraphObject {
 
 	/**
 	 * The user's Facebook ID
+	 * @var string
 	 */
 	public $id;
 
@@ -239,6 +242,10 @@ class FacebookUser extends GraphObject {
 	 */
 	public $work;
 
+	//################################
+	//    Relations/connections
+	//################################
+
 	/**
 	 * The user's friends.
 	 * @permission Only for the current user.
@@ -246,6 +253,18 @@ class FacebookUser extends GraphObject {
 	 */
 	public $friends;
 
+	/**
+	 * All the pages this user has liked.
+	 * @permission user_likes or friends_likes
+	 * @var Collection|FacebookPage
+	 */
+	public $likes;
+
+	/**
+	 * Constructor
+	 * @param mixed $id
+	 * @param array $parameters
+	 */
 	function __construct($id, $parameters = null) {
 		if ($id === null || is_array($id)) {
 			parent::__construct($id, $parameters);
@@ -259,6 +278,34 @@ class FacebookUser extends GraphObject {
 			parent::__construct($_SESSION['__Facebook__']['cache'][$id], $parameters);
 			return;
 		}
+		parent::__construct($id, array('fields' => $this->getAllowedFields(array('id' => $id))));
+		// Cache userdata
+		$_SESSION['__Facebook__']['cache'][$id] = get_public_vars($this);
+	}
+
+	function __get($property) {
+		if ($property === 'friends') {
+			$path = $this->id.'/friends';
+			if (isset($_SESSION['__Facebook__']['cache'][$path])) {
+				$response = $_SESSION['__Facebook__']['cache'][$path];
+			} else {
+				$friends = array();
+				$fb = Facebook::getInstance();
+				$response = $fb->all($path, array('fields' => $this->getAllowedFields()));
+				$_SESSION['__Facebook__']['cache'][$path] = $response;
+			}
+			foreach ($response as $friend) {
+				$friends[] = new FacebookUser($friend);
+			}
+			$this->_state = 'construct';
+			$this->$property = new Collection($friends);
+			$this->_state = 'ready';
+			return $this->$property;
+		}
+		return parent::__get($property);
+	}
+
+	protected static function getFieldPermissions($options = array()) {
 		$permissions = array(
 			'bio' => 'about_me',
 			'birthday' => 'birthday',
@@ -275,65 +322,28 @@ class FacebookUser extends GraphObject {
 			'work' => 'work_history',
 		);
 		$fb = Facebook::getInstance();
-		if ($id === 'me' || $id === $fb->getUser()) {
+		if (isset($options['id']) && ($options['id'] === 'me' || $options['id'] === $fb->getUser())) { // Current user?
 			foreach ($permissions as $property => $permission) {
 				$permissions[$property] = 'user_'.$permission;
 			}
 			$permissions['languages'] = 'user_likes';
 			$permissions['email'] = 'email';
 		} else {
-			// @todo detect if its a friend
+			// @todo detect if it's a friend
 			foreach ($permissions as $property => $permission) {
 				$permissions[$property] = 'friends_'.$permission;
 			}
 			$permissions['email'] = 'denied';
 			$permissions['languages'] = 'denied';
 		}
-		$relations = array('friends');
-		$parameters = $this->generateParameters($permissions, $relations);
-		parent::__construct($id, $parameters);
-		// Cache userdata
-		$_SESSION['__Facebook__']['cache'][$id] = get_public_vars($this);
+		return $permissions;
 	}
 
-	function __get($property) {
-		if ($property === 'friends') {
-			$path = $this->id.'/friends';
-			if (isset($_SESSION['__Facebook__']['cache'][$path])) {
-				$response = $_SESSION['__Facebook__']['cache'][$path];
-			} else {
-				$permissions = array(
-					'bio' => 'friends_about_me',
-					'birthday' => 'friends_birthday',
-					'education' => 'friends_education_history',
-					'hometown' => 'friends_hometown',
-					'interested_in' => 'friends_relationship_details',
-					'location' => 'friends_location',
-					'political' => 'friends_religion_politics',
-					'quotes' => 'friends_about_me',
-					'relationship_status' => 'friends_relationships',
-					'religion' => 'friends_religion_politics',
-					'significant_other' => 'friends_relationships',
-					'website' => 'friends_website',
-					'work' => 'friends_work_history',
-					'email' => 'denied',
-					'languages' => 'denied',
-				);
-				$parameters = $this->generateParameters($permissions, array('friends'));
-				$friends = array();
-				$fb = Facebook::getInstance();
-				$response = $fb->all($path, $parameters);
-				$_SESSION['__Facebook__']['cache'][$path] = $response;
-			}
-			foreach ($response as $friend) {
-				$friends[] = new FacebookUser($friend);
-			}
-			$this->_state = 'construct';
-			$this->$property = new Collection($friends);
-			$this->_state = 'ready';
-			return $this->$property;
-		}
-		return parent::__get($property);
+	protected static function getKnownConnections($options = array()) {
+		return array(
+			'friends' => '\Sledgehammer\FacebookUser',
+			'likes' => '\Sledgehammer\FacebookPage',
+		);
 	}
 
 }

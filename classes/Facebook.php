@@ -180,7 +180,7 @@ class Facebook extends \BaseFacebook {
 			$response = $this->api($url->path, 'GET', $url->query); // fetch page
 			if ($page === 1 && $pages[0] === $response['data']) { // Does page 2 have identical results as page 1?
 				// Bug/loop detected in facebook's pagin.
-				// Example loop: /me/mutualfriends/$userid
+				// Example loop: /$friend_id/mutualfriends/$me_id
 				return $response['data']; // return a single.
 			}
 			$pages[$page] = $response['data'];
@@ -189,7 +189,7 @@ class Facebook extends \BaseFacebook {
 				if (isset($url->query['limit']) && ((count($response['data']) / $url->query['limit']) < 0.10)) { // This page has less than 10% results of the limit?
 					// 90+% is filtered out or there is an error/loop in facebooks paging
 					// Example empty 2nd page: /me/friends
-					// Example loop: /me/mutualfriends/$userid
+					// Example loop: /$friend_id/mutualfriends/$me_id
 					break; // Assumme facebook loop/empty second page.
 				}
 			} else {

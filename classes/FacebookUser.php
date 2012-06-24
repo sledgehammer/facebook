@@ -425,8 +425,7 @@ class FacebookUser extends GraphObject {
 
 	/**
 	 * The mutual friends between two users.
-	 * array of objects containing friend id and name fields.
-	 * @var Collection|GraphObject
+	 * @var Collection|FacebookUser
 	 */
 	public $mutualfriends;
 
@@ -609,11 +608,15 @@ class FacebookUser extends GraphObject {
 	/**
 	 * List of two Users mutual friends.
 	 * @param number $userId
-	 * @return \Sledgehammer\Collection
+	 * @return Collection|FacebookUser
 	 */
 	function getMutualfriendWith($userId) {
 		$fb = Facebook::getInstance();
-		$friends = $fb->all($this->id.'/mutualfriends/'.$userId); //, array('fields' => $this->getAllowedFields()));
+		$response = $fb->all($this->id.'/mutualfriends/'.$userId, array('fields' => $this->getAllowedFields()));
+		$friends = array();
+		foreach ($response as $friend) {
+			$friends[] = new FacebookUser($friend);
+		}
 		return new Collection($friends);
 	}
 

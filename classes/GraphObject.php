@@ -112,6 +112,31 @@ class GraphObject extends Object {
 	}
 
 	/**
+	 * Handle postTo* methods.
+	 *
+	 * @param string $method
+	 * @param array $arguments
+	 */
+	function __call($method, $arguments) {
+		if (text($method)->startsWith('postTo')) { // a postTo*($data) method?
+			if (empty($this->id)) {
+				throw new \Exception('Can\'t post to a connection without an id');
+			}
+			$path = $this->id.'/'.lcfirst(substr($method, 6));
+			if (count($arguments) > 0) {
+				$parameters = $arguments[0];
+			} else {
+				notice('Missing argument 1 for '.$method.'()');
+				$parameters = array();
+			}
+			$response = Facebook::getInstance()->post($path, $parameters);
+			return new GraphObject($response['id']);
+		} else {
+			return parent::__call($method, $arguments);
+		}
+	}
+
+	/**
 	 * Generate fieldlist based on propeties in the currect class.
 	 *
 	 * @param array $options Options that will be forwarded to the getFieldPermissions() and getKnownConnections() functions.

@@ -247,25 +247,321 @@ class FacebookUser extends GraphObject {
 	//################################
 
 	/**
+	 * The Facebook apps and pages owned by the current user.
+	 * @permission manage_pages yields access_tokens that can be used to query the Graph API on behalf of the app/page
+	 * array of objects containing account name, access_token, category, id
+	 * @var Collection|GraphObject
+	 */
+	public $accounts;
+
+	/**
+	 * The achievements for the user.
+	 * @permission user_games_activity or friends_games_activity.
+	 * array of achievement(instance) objects
+	 * @var Collection|GraphObject
+	 */
+	public $achievements;
+
+	/**
+	 * The activities listed on the user's profile.
+	 * @permission user_activities or friends_activities.
+	 * array of objects containing activity id, name, category and create_time fields.
+	 * @var Collection|GraphObject
+	 */
+	public $activities;
+
+	/**
+	 * The photo albums this user has created.
+	 * @permission user_photos or friends_photos.
+	 * array of Album objects.
+	 * @var Collection|GraphObject
+	 */
+	public $albums;
+
+	/**
+	 * The user's outstanding requests from an app.
+	 * array of app requests for the user within that app.
+	 * @var Collection|GraphObject
+	 */
+	public $apprequests;
+
+	/**
+	 * The books listed on the user's profile.
+	 * user_likes or friends_likes.
+	 * array of objects containing book id, name, category and create_time fields.
+	 * @var Collection|GraphObject
+	 */
+	public $books;
+
+	/**
+	 * The places that the user has checked-into.
+	 * @permission user_checkins or friends_checkins.
+	 * @var Collection|GraphObject
+	 */
+	public $checkins;
+
+	/**
+	 * The events this user is attending.
+	 * @permission user_events or friends_events.
+	 * array of objects containing event id, name, start_time, end_time, location and rsvp_status defaulting to the past two weeks.
+	 * @var Collection|GraphObject
+	 */
+	public $events;
+
+	/**
+	 * The user's family relationships
+	 * @permission user_relationships.
+	 * array of objects containing id, name, and relationship fields.
+	 * @var Collection|GraphObject
+	 */
+	public $family;
+
+	/**
+	 * The user's wall.
+	 * @permission read_stream
+	 * array of Post objects containing (up to) the last 25 posts.
+	 * @var Collection|GraphObject
+	 */
+	public $feed;
+
+	/**
+	 * The user's friend lists.
+	 * @permission read_friendlists.
+	 * array of objects containing id and name fields of the friendlist.
+	 * @var Collection|GraphObject
+	 */
+	public $friendlists;
+
+	/**
+	 * The user's incoming friend requests.
+	 * @permission user_requests.
+	 * array of objects containing to, from, message, created_time and unread fields of the friend request
+	 * @var Collection|GraphObject
+	 */
+	public $friendrequests;
+
+	/**
 	 * The user's friends.
-	 * @permission Only for the current user.
-	 * @var Collection
+	 * @var Collection|FacebookUser
 	 */
 	public $friends;
 
 	/**
+	 * Games the user has added to the Arts and Entertainment section of their profile.
+	 * @permission user_likes
+	 * array of objects containing id, name, category, and created_time
+	 * @var Collection|GraphObject
+	 */
+	public $games;
+
+	/**
+	 * The Groups that the user belongs to.
+	 * @permission user_groups or friends_groups.
+	 * An array of objects containing the version(old-0 or new Group-1), name, id, administrator (if user is the administrator of the Group) and bookmark_order(at what place in the list of group bookmarks on the homepage, the group shows up for the user).
+	 * @var Collection|GraphObject
+	 */
+	public $groups;
+
+	/**
+	 * The user's news feed.
+	 * @permission read_stream.
+	 * array of Post objects containing (up to) the last 25 posts.
+	 * @var Collection|GraphObject
+	 */
+	public $home;
+
+	/**
+	 * The Threads in this user's inbox.
+	 * @permission read_mailbox
+	 * @var Collection|GraphObject
+	 */
+	public $inbox;
+
+	/**
+	 * The interests listed on the user's profile.
+	 * @permission user_interests or friends_interests.
+	 * array of objects containing interest id, name, category and create_time fields.
+	 */
+	public $interests;
+
+	/**
 	 * All the pages this user has liked.
-	 * @permission user_likes or friends_likes
+	 * @permission user_likes or friends_likes.
+	 * array of objects containing like id, name, category and create_time fields.
 	 * @var Collection|FacebookPage
 	 */
 	public $likes;
 
 	/**
+	 * The user's posted links.
+	 * @permission read_stream
+	 * @var Collection|GraphObject
+	 */
+	public $links;
+
+	/**
+	 * Posts, statuses, and photos in which the user has been tagged at a location, or where the user has authored content (i.e. this excludes objects with no location information, and objects in which the user is not tagged). See documentation of the location_post table for more detailed information on permissions.
+	 * @permission user_photos, friend_photos, user_status, friends_status, user_checkins, or friends_checkins.
+	 * array of objects containing the id, type, place, created_time, and optional application and tags fields.
+	 * @var Collection|GraphObject
+	 */
+	public $locations;
+
+	/**
+	 * The movies listed on the user's profile.
+	 * @permission user_likes or friends_likes
+	 * array of objects containing movie id, name, category and create_time fields.
+	 * @var Collection|GraphObject
+	 */
+	public $movies;
+
+	/**
+	 * The music listed on the user's profile.
+	 * @permission user_likes or friends_likes
+	 * array of objects containing music id, name, category and create_time fields.
+	 * @var Collection|GraphObject
+	 */
+	public $music;
+
+	/**
+	 * The mutual friends between two users.
+	 * array of objects containing friend id and name fields.
+	 * @var Collection|GraphObject
+	 */
+	public $mutualfriends;
+
+	/**
+	 * The user's notes.
+	 * @permission read_stream.
+	 * @var Collection|GraphObject
+	 */
+	public $notes;
+
+	/**
+	 * The notifications for the user.
+	 * @permission manage_notifications
+	 * array of objects containing id, from, to, created_time,updated_time, title, link, application, unread.
+	 * @var Collection|GraphObject
+	 */
+	public $notifications;
+
+	/**
+	 * The messages in this user's outbox.
+	 * @permission read_mailbox
+	 * array of messages
+	 * @var Collection|GraphObject
+	 */
+	public $outbox;
+
+	/**
+	 * The Facebook Credits orders the user placed with an application. See the Credits API for more information.
+	 * @var Collection|GraphObject
+	 */
+	public $payments;
+
+	/**
+	 * The permissions that user has granted the application.
+	 * @var Collection|GraphObject
+	 * array containing a single object which has the keys as the permission names and the values as the permission values (1/0)
+	 */
+	public $permissions;
+
+	/**
+	 * Photos the user (or friend) is tagged in.
+	 * @permission user_photo_video_tags or friends_photo_video_tags.
+	 * array of Photo objects.
+	 * @var Collection|GraphObject
+	 */
+	public $photos;
+
+	/**
+	 * Connection omitted, is also defined as field.
+	 * The user's profile picture.
+	 * @var Collection|GraphObject
+	 * HTTP 302 redirect to URL of the user's profile picture (use ?type=square | small | normal | large to request a different photo).
+	 */
+//public $picture
+
+	/**
+	 * The user's pokes.
+	 * @permission read_mailbox
+	 * an array of objects containing to, from, created_time and type fields.
+	 * @var Collection|GraphObject
+	 */
+	public $pokes;
+
+	/**
 	 * The user's own posts.
-	 * @permission read_stream for non-public posts.
+	 * @permission read_stream to see non-public posts.
 	 * @var Collection|FacebookPost
 	 */
 	public $posts;
+
+	/**
+	 * The user's questions.
+	 * @permission user_questions
+	 * @var Collection|GraphObject
+	 */
+	public $questions;
+
+	/**
+	 * The current scores for the user in games.
+	 * @permission user_games_activity or friends_games_activity
+	 * array of objects containing user, application, score and type.
+	 * @var Collection|GraphObject
+	 */
+	public $scores;
+
+	/**
+	 * The user's status updates.
+	 * @permission read_stream
+	 * @var Collection|GraphObject
+	 */
+	public $statuses;
+
+	/**
+	 * People you're subscribed to.
+	 * array of objects containing user id and name fields.
+	 * @var Collection|GraphObject
+	 */
+	public $subscribedto;
+
+	/**
+	 * The user's subscribers.
+	 * @var Collection|GraphObject
+	 * array of objects containing user id and name fields.
+	 */
+	public $subscribers;
+
+	/**
+	 * Posts the user is tagged in.
+	 * @permission read_stream
+	 * array of objects containing id, from, to, picture, link, name, caption, description, properties, icon, actions, type, application, created_time, and updated_time
+	 * @var Collection|GraphObject
+	 */
+	public $tagged;
+
+	/**
+	 * The television listed on the user's profile.
+	 * @permission user_likes or friends_likes.
+	 * array of objects containing television id, name, category and create_time fields.
+	 * @var Collection|GraphObject
+	 */
+	public $television;
+
+	/**
+	 * The updates in this user's inbox.
+	 * @permission read_mailbox
+	 * @var Collection|GraphObject
+	 */
+	public $updates;
+
+	/**
+	 * The videos this user has been tagged in.
+	 * @permission user_videos or friends_videos.
+	 * @var Collection|GraphObject
+	 */
+	public $videos;
 
 	/**
 	 * Constructor
@@ -291,39 +587,45 @@ class FacebookUser extends GraphObject {
 	}
 
 	/**
-	 * Post a link/post/status to the users feed.
+	 * Post a link or status-message to the users feed.
 	 * @permission publish_stream
 	 *
-	 * @param FacebookPost|GraphObject|array $facebookPost
+	 * @param FacebookPost|GraphObject|array $post
 	 * @return FacebookPost
 	 */
-	function postToFeed($facebookPost) {
-		if (is_array($facebookPost)) {
-			$facebookPost = new FacebookPost($facebookPost);
+	function postToFeed($post) {
+		if (is_array($post)) {
+			$post = new FacebookPost($post);
 		}
 		$fb = Facebook::getInstance();
 		if (in_array('publish_stream', $fb->getPermissions()) === false) {
 			notice('Posting to the user\'s feed requires the "publish_stream" permission', 'Current permissions: '.quoted_human_implode(' and ', $fb->getPermissions()));
 		}
-		$parameters = get_public_vars($facebookPost);
-		foreach ($parameters as $field => $value) {
-			if ($value instanceof Collection) {
-				unset($parameters[$field]);
-			}
-		}
-		$response = $fb->post($this->id.'/feed', $parameters);
-		$class = get_class($facebookPost);
+		$response = $fb->post($this->id.'/feed', $post);
+		$class = get_class($post);
 		return new $class($response['id']);
 	}
 
+	/**
+	 * List of two Users mutual friends.
+	 * @param number $userId
+	 * @return \Sledgehammer\Collection
+	 */
+	function getMutualfriendWith($userId) {
+		$fb = Facebook::getInstance();
+		$friends = $fb->all($this->id.'/mutualfriends/'.$userId); //, array('fields' => $this->getAllowedFields()));
+		return new Collection($friends);
+	}
+
 	function __get($property) {
+		$fb = Facebook::getInstance();
 		if ($property === 'friends') {
 			$path = $this->id.'/friends';
 			if (isset($_SESSION['__Facebook__']['cache'][$path])) {
 				$response = $_SESSION['__Facebook__']['cache'][$path];
 			} else {
 				$friends = array();
-				$fb = Facebook::getInstance();
+
 				$response = $fb->all($path, array('fields' => $this->getAllowedFields()));
 				$_SESSION['__Facebook__']['cache'][$path] = $response;
 			}
@@ -332,6 +634,12 @@ class FacebookUser extends GraphObject {
 			}
 			$this->_state = 'construct';
 			$this->$property = new Collection($friends);
+			$this->_state = 'ready';
+			return $this->$property;
+		}
+		if ($property === 'mutualfriends') {
+			$this->_state = 'construct';
+			$this->$property = $this->getMutualfriendWith($fb->getUser());
 			$this->_state = 'ready';
 			return $this->$property;
 		}
@@ -374,11 +682,50 @@ class FacebookUser extends GraphObject {
 
 	protected static function getKnownConnections($options = array()) {
 		return array(
+			'accounts' => null,
+			'achievements' => null,
+			'activities' => null,
+			'albums' => null,
+			'apprequests' => null,
+			'books' => null,
+			'checkins' => null,
+			'events' => null,
+			'family' => null,
+			'feed' => null,
+			'friendlists' => null,
+			'friendrequests' => null,
 			'friends' => '\Sledgehammer\FacebookUser',
+			'games' => null,
+			'groups' => null,
+			'home' => null,
+			'inbox' => null,
+			'interests' => null,
 			'likes' => '\Sledgehammer\FacebookPage',
+			'links' => null,
+			'locations' => null,
+			'movies' => null,
+			'music' => null,
+			'mutualfriends' => null,
+			'notes' => null,
+			'notifications' => null,
+			'outbox' => null,
+			'payments' => null,
+			'permissions' => null,
+			'photos' => null,
+			'pokes' => null,
 			'posts' => '\Sledgehammer\FacebookPost',
+			'questions' => null,
+			'scores' => null,
+			'statuses' => null,
+			'subscribedto' => null,
+			'subscribers' => null,
+			'tagged' => null,
+			'television' => null,
+			'updates' => null,
+			'videos' => null,
 		);
 	}
+
 }
 
 ?>

@@ -29,3 +29,4 @@ Object oriented API for using Facebook's Social Graph.
 * Implement writing api as methods in the GraphObject.
 * Implement ActiveRecord methods. save(), delete()
 * Lazily fetch the result object when creating a post.
+* Give hint for connection/relation permissions.

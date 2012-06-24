@@ -78,7 +78,7 @@ class FacebookPage extends GraphObject {
 	public $picture;
 
 	/**
-	 * The JSON object including cover_id (the ID of the photo), source (the URL for the cover photo), and offset_y (the percentage offset from top [0-100])
+	 * An object containing the cover_id, source, and offset_y.
 	 * @var array
 	 */
 	public $cover;
@@ -96,9 +96,10 @@ class FacebookPage extends GraphObject {
 	public $talking_about_count;
 
 	/**
-	 * A Page admin access_token for this page; The current user must be an administrator of this page
+	 * A Page admin access_token for this page;
+	 * @permission The current user must be an administrator of this page
 	 */
-	public $access_token;
+//	public $access_token;
 
 	/**
 	 * Constructor

@@ -96,20 +96,12 @@ class Facebook extends \BaseFacebook {
 		}
 		if ($accessToken) {
 			// Validate permissions
-			$response = $this->get('me/permissions');
-			$acceptedPermissions = $response['data'][0];
+			$acceptedPermissions = $this->getPermissions();
 			foreach ($permissions as $permission) {
-				if (empty($acceptedPermissions[$permission])) {
+				if (in_array($permission, $acceptedPermissions) === false) {
 					throw new \Exception('Permission to "'.$permission.'" was denied');
 				}
 			}
-			$permissions = array();
-			foreach ($acceptedPermissions as $permission => $enabled) {
-				if ($enabled) {
-					$permissions[] = $permission;
-				}
-			}
-			$this->setPersistentData('permissions', $permissions);
 			return true;
 
 		}
@@ -247,7 +239,19 @@ class Facebook extends \BaseFacebook {
 	 * @return array
 	 */
 	function getPermissions() {
-		return $this->getPersistentData('permissions', array());
+		$permissions = $this->getPersistentData('permissions', false);
+		if ($permissions === false) {
+			$response = $this->get('me/permissions');
+			$permissions = array();
+			foreach ($response['data'][0] as $permission => $enabled) {
+				if ($enabled) {
+					$permissions[] = $permission;
+				}
+			}
+			$this->setPersistentData('permissions', $permissions);
+		}
+		return $permissions;
+
 	}
 
 

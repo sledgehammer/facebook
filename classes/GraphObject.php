@@ -11,6 +11,16 @@ namespace Sledgehammer;
  */
 class GraphObject extends Object {
 
+	/**
+	 * The ID of the graph object.
+	 * @var number
+	 */
+	public $id;
+
+	/**
+	 * Used for dynamicly adding properties.
+	 * @var string
+	 */
 	protected $_state = 'invalid';
 
 	/**
@@ -51,14 +61,22 @@ class GraphObject extends Object {
 	 * @return mixed
 	 */
 	function __get($property) {
-		// Retrieve a connection
+		$fields = get_public_vars(get_class($this));
+		if (array_key_exists($property, $fields)) {
+			$permissions = static::getFieldPermissions(array('id' => $this->id));
+			if (isset($permissions[$property]) && $permissions[$property] !== 'denied' && in_array($permissions[$property], Facebook::getInstance()->getPermissions()) === false) {
+				notice('Field "'.$property.'" requires the "'.$permissions[$property].'" permission', 'Currert permissions: '.quoted_human_implode(' and ', Facebook::getInstance()->getPermissions()));
+			}
+			return parent::__get($property);
+		}
 		try {
+			// Retrieve a connection
 			$connections = $this->getKnownConnections();
 			if (isset($connections[$property])) {
 				$class = $connections[$property];
 				$parameters = array('fields' => call_user_func(array($class, 'getAllowedFields')));
 			} else {
-				$class = GraphObject;
+				$class = '\Sledgehammer\GraphObject';
 				$parameters = array();
 			}
 			$response = Facebook::getInstance()->all($this->id.'/'.$property, $parameters);

@@ -61,18 +61,20 @@ class GraphObject extends Object {
 	 * @return mixed
 	 */
 	function __get($property) {
-		$fields = get_public_vars(get_class($this));
-		if (array_key_exists($property, $fields)) {
-			$permissions = static::getFieldPermissions(array('id' => $this->id));
-			if (isset($permissions[$property]) && $permissions[$property] !== 'denied' && in_array($permissions[$property], Facebook::getInstance()->getPermissions()) === false) {
-				notice('Field "'.$property.'" requires the "'.$permissions[$property].'" permission', 'Currert permissions: '.quoted_human_implode(' and ', Facebook::getInstance()->getPermissions()));
+		$connections = $this->getKnownConnections();
+		if (array_key_exists($property, $connections) === false) { // not a (known) connection?
+			$fields = get_public_vars(get_class($this));
+			if (array_key_exists($property, $fields)) { // is the field defined in the class?
+				$permissions = static::getFieldPermissions(array('id' => $this->id));
+				if (isset($permissions[$property]) && $permissions[$property] !== 'denied' && in_array($permissions[$property], Facebook::getInstance()->getPermissions()) === false) {
+					notice('Field "'.$property.'" requires the "'.$permissions[$property].'" permission', 'Current permissions: '.quoted_human_implode(' and ', Facebook::getInstance()->getPermissions()));
+				}
+				return parent::__get($property);
 			}
-			return parent::__get($property);
 		}
 		try {
 			// Retrieve a connection
-			$connections = $this->getKnownConnections();
-			if (isset($connections[$property])) {
+			if (isset($connections[$property]) && $connections[$property] !== '\Sledgehammer\GraphObject') {
 				$class = $connections[$property];
 				$parameters = array('fields' => call_user_func(array($class, 'getAllowedFields')));
 			} else {

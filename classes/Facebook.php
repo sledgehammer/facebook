@@ -99,6 +99,7 @@ class Facebook extends \BaseFacebook {
 			$acceptedPermissions = $this->getPermissions();
 			foreach ($permissions as $permission) {
 				if (in_array($permission, $acceptedPermissions) === false) {
+					$this->clearAllPersistentData();
 					throw new \Exception('Permission to "'.$permission.'" was denied');
 				}
 			}

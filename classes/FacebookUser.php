@@ -261,6 +261,13 @@ class FacebookUser extends GraphObject {
 	public $likes;
 
 	/**
+	 * The user's own posts.
+	 * @permission read_stream for non-public posts.
+	 * @var Collection|FacebookPost
+	 */
+	public $posts;
+
+	/**
 	 * Constructor
 	 * @param mixed $id
 	 * @param array $parameters
@@ -281,6 +288,32 @@ class FacebookUser extends GraphObject {
 		parent::__construct($id, array('fields' => $this->getAllowedFields(array('id' => $id))));
 		// Cache userdata
 		$_SESSION['__Facebook__']['cache'][$id] = get_public_vars($this);
+	}
+
+	/**
+	 * Post a link/post/status to the users feed.
+	 * @permission publish_stream
+	 *
+	 * @param FacebookPost|GraphObject|array $facebookPost
+	 * @return FacebookPost
+	 */
+	function postToFeed($facebookPost) {
+		if (is_array($facebookPost)) {
+			$facebookPost = new FacebookPost($facebookPost);
+		}
+		$fb = Facebook::getInstance();
+		if (in_array('publish_stream', $fb->getPermissions()) === false) {
+			notice('Posting to the user\'s feed requires the "publish_stream" permission', 'Current permissions: '.quoted_human_implode(' and ', $fb->getPermissions()));
+		}
+		$parameters = get_public_vars($facebookPost);
+		foreach ($parameters as $field => $value) {
+			if ($value instanceof Collection) {
+				unset($parameters[$field]);
+			}
+		}
+		$response = $fb->post($this->id.'/feed', $parameters);
+		$class = get_class($facebookPost);
+		return new $class($response['id']);
 	}
 
 	function __get($property) {
@@ -343,9 +376,9 @@ class FacebookUser extends GraphObject {
 		return array(
 			'friends' => '\Sledgehammer\FacebookUser',
 			'likes' => '\Sledgehammer\FacebookPage',
+			'posts' => '\Sledgehammer\FacebookPost',
 		);
 	}
-
 }
 
 ?>

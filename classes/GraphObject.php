@@ -55,6 +55,18 @@ class GraphObject extends Object {
 	}
 
 	/**
+	 * Delete the object from facebook.
+	 *
+	 * @return bool
+	 */
+	function delete() {
+		if (empty($this->id)) {
+			throw new \Exception('Can\'t delete an object without an id');
+		}
+		return Facebook::getInstance()->delete($this->id);
+	}
+
+	/**
 	 * Fetch connected grapobjects and store in the property.
 	 *
 	 * @param string $property

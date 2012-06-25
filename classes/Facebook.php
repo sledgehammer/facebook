@@ -239,19 +239,19 @@ class Facebook extends \BaseFacebook {
 	 * Short notation for the api POST requests
 	 *
 	 * @param string $path
-	 * @param array|GraphObject $parameters
+	 * @param array|GraphObject $data
 	 * @return mixed
 	 */
-	static function post($path, $parameters = array()) {
-		if (is_object($parameters)) {
-			$parameters = get_public_vars($parameters);
-			foreach ($parameters as $field => $value) {
+	static function post($path, $data = array()) {
+		if (is_object($data)) {
+			$data = get_public_vars($data);
+			foreach ($data as $field => $value) {
 				if ($value instanceof Collection) {
-					unset($parameters[$field]);
+					unset($data[$field]);
 				}
 			}
 		}
-		return self::getInstance()->api($path, 'POST', $parameters);
+		return self::getInstance()->api($path, 'POST', $data);
 	}
 
 	/**

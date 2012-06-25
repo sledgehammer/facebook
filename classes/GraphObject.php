@@ -109,18 +109,12 @@ class GraphObject extends Object {
 		try {
 			// Retrieve a connection
 			if (isset($connections[$property]) && $connections[$property] !== '\Sledgehammer\GraphObject') {
-				$class = $connections[$property];
 				$parameters = array('fields' => call_user_func(array($class, 'getAllowedFields')));
 			} else {
-				$class = '\Sledgehammer\GraphObject';
 				$parameters = array();
 			}
-			$response = Facebook::all($this->id.'/'.$property, $parameters);
-			$objects = array();
-			foreach ($response as $data) {
-				$objects[] = new $class($data);
-			}
-			$this->__set(array($property => new Collection($objects)));
+			$method = 'get'.ucfirst($property);
+			$this->__set(array($property => $this->$method($parameters)));
 			return $this->$property;
 		} catch (\Exception $e) {
 			report_exception($e);
@@ -158,18 +152,40 @@ class GraphObject extends Object {
 	 * @param array $arguments
 	 */
 	function __call($method, $arguments) {
+		if (text($method)->startsWith('get')) { // a get*($parameters) method?
+			if (empty($this->id)) {
+				throw new \Exception('Can\'t fetch a connection without an id');
+			}
+			if (count($arguments) > 0) {
+				$parameters = $arguments[0];
+			} else {
+				$parameters = array();
+			}
+			$connection = lcfirst(substr($method, 3));
+			$connections = $this->getKnownConnections();
+			if (isset($connections[$connection]) && $connections[$connection] !== '\Sledgehammer\GraphObject') {
+				$class = $connections[$connection];
+			} else {
+				$class = '\Sledgehammer\GraphObject';
+			}
+			$objects = array();
+			$response = Facebook::all($this->id.'/'.$connection, $parameters);
+			foreach ($response as $data) {
+				$objects[] = new $class($data);
+			}
+			return new Collection($objects);
+		}
 		if (text($method)->startsWith('postTo')) { // a postTo*($data) method?
 			if (empty($this->id)) {
 				throw new \Exception('Can\'t post to a connection without an id');
 			}
-			$path = $this->id.'/'.lcfirst(substr($method, 6));
 			if (count($arguments) > 0) {
 				$parameters = $arguments[0];
 			} else {
 				notice('Missing argument 1 for '.$method.'()');
 				$parameters = array();
 			}
-			$response = Facebook::post($path, $parameters);
+			$response = Facebook::post($this->id.'/'.lcfirst(substr($method, 6)), $parameters);
 			return new GraphObject($response['id']);
 		} else {
 			return parent::__call($method, $arguments);

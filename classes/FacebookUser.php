@@ -567,18 +567,18 @@ class FacebookUser extends GraphObject {
 	 * @param mixed $id
 	 * @param array $parameters
 	 */
-	function __construct($id, $parameters = null) {
+	function __construct($id, $parameters = null, $preload = false) {
 		if ($id === null || is_array($id)) {
-			parent::__construct($id, $parameters);
+			parent::__construct($id, $parameters, $preload);
 			return;
 		}
 		if ($parameters === null) { // Fetch all allowed fields?
 			parent::__construct($id, array(
 				'fields' => implode(',', $this->getAllowedFields(array('id' => $id))),
 				'local_cache' => true
-			));
+			), $preload);
 		} else {
-			parent::__construct($id, $parameters);
+			parent::__construct($id, $parameters, $preload);
 		}
 	}
 
@@ -608,8 +608,7 @@ class FacebookUser extends GraphObject {
 	 * @return Collection|FacebookUser
 	 */
 	function getMutualfriendWith($userId) {
-		$fb = Facebook::getInstance();
-		$response = $fb->all($this->id.'/mutualfriends/'.$userId, array('fields' => $this->getAllowedFields()));
+		$response = Facebook::all($this->id.'/mutualfriends/'.$userId, array('fields' => $this->getAllowedFields()));
 		$friends = array();
 		foreach ($response as $friend) {
 			$friends[] = new FacebookUser($friend);
@@ -618,11 +617,10 @@ class FacebookUser extends GraphObject {
 	}
 
 	function __get($property) {
-		$fb = Facebook::getInstance();
 		if ($property === 'friends') {
 			$path = $this->id.'/friends';
 			$friends = array();
-			$response = $fb->all($path, array('fields' => $this->getAllowedFields(), 'local_cache' => true));
+			$response = Facebook::all($path, array('fields' => $this->getAllowedFields(), 'local_cache' => true));
 			foreach ($response as $friend) {
 				$friends[] = new FacebookUser($friend);
 			}
@@ -635,7 +633,7 @@ class FacebookUser extends GraphObject {
 		if ($property === 'mutualfriends') {
 			$state = $this->_state;
 			$this->_state = 'construct';
-			$this->$property = $this->getMutualfriendWith($fb->getUser());
+			$this->$property = $this->getMutualfriendWith(Facebook::getInstance()->getUser());
 			$this->_state = $state;
 			return $this->$property;
 		}
@@ -701,7 +699,7 @@ class FacebookUser extends GraphObject {
 			'locations' => null,
 			'movies' => null,
 			'music' => null,
-			'mutualfriends' => null,
+			'mutualfriends' => '\Sledgehammer\FacebookUser',
 			'notes' => null,
 			'notifications' => null,
 			'outbox' => null,

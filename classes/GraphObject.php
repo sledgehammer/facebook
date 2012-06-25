@@ -36,8 +36,9 @@ class GraphObject extends Object {
 	 * Constructor
 	 * @param string $id
 	 * @param array $parameters Facebook API call parameters (fields, etc)
+	 * @param bool $preload  true: Fetch fields from facebook now. false: Fetch fields from facebook on access.
 	 */
-	function __construct($id, $parameters = array()) {
+	function __construct($id, $parameters = array(), $preload = false) {
 		// Unset all properties
 		$properties = array_keys(get_public_vars($this));
 		unset($properties[array_search('id', $properties)]); // keep the id property
@@ -54,7 +55,7 @@ class GraphObject extends Object {
 			unset($this->_apiParameters);
 		} elseif ($preload) {
 			$this->_state = 'construct';
-			set_object_vars($this, Facebook::getInstance()->get($id, $parameters));
+			set_object_vars($this, Facebook::get($id, $parameters));
 			$this->_state = 'ready';
 			unset($this->_apiParameters);
 		} else {
@@ -73,7 +74,7 @@ class GraphObject extends Object {
 		if (empty($this->id)) {
 			throw new \Exception('Can\'t delete an object without an id');
 		}
-		return Facebook::getInstance()->delete($this->id);
+		return Facebook::delete($this->id);
 	}
 
 	/**
@@ -89,7 +90,7 @@ class GraphObject extends Object {
 		$connections = $this->getKnownConnections();
 		if (array_key_exists($property, $connections) === false) { // not a (known) connection?
 			if ($this->_state === 'id_only') {
-				$fields = Facebook::getInstance()->get($this->id, $this->_apiParameters);
+				$fields = Facebook::get($this->id, $this->_apiParameters);
 
 				$this->_state = 'construct';
 				set_object_vars($this, $fields);
@@ -118,7 +119,7 @@ class GraphObject extends Object {
 				$class = '\Sledgehammer\GraphObject';
 				$parameters = array();
 			}
-			$response = Facebook::getInstance()->all($this->id.'/'.$property, $parameters);
+			$response = Facebook::all($this->id.'/'.$property, $parameters);
 			$objects = array();
 			foreach ($response as $data) {
 				$objects[] = new $class($data);
@@ -167,7 +168,7 @@ class GraphObject extends Object {
 				notice('Missing argument 1 for '.$method.'()');
 				$parameters = array();
 			}
-			$response = Facebook::getInstance()->post($path, $parameters);
+			$response = Facebook::post($path, $parameters);
 			return new GraphObject($response['id']);
 		} else {
 			return parent::__call($method, $arguments);
@@ -184,8 +185,7 @@ class GraphObject extends Object {
 		$permissions = static::getFieldPermissions($options);
 		$relations = static::getKnownConnections($options);
 		$fields = array();
-		$fb = Facebook::getInstance();
-		$availablePermissions = $fb->getPermissions();
+		$availablePermissions = Facebook::getInstance()->getPermissions();
 		$properties = array_keys(get_public_vars(get_called_class()));
 		foreach ($properties as $property) {
 			if (isset($permissions[$property])) { // Does this property require a permission?

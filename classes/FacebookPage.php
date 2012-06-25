@@ -106,11 +106,11 @@ class FacebookPage extends GraphObject {
 	 * @param mixed $id
 	 * @param array $parameters
 	 */
-	function __construct($id, $parameters = null) {
+	function __construct($id, $parameters = null, $preload = false) {
 		if ($parameters === null) {
 			$parameters = array('fields' => self::getAllowedFields());
 		}
-		parent::__construct($id, $parameters);
+		parent::__construct($id, $parameters, $preload);
 	}
 
 }

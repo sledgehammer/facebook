@@ -42,10 +42,22 @@ class Facebook extends \BaseFacebook {
 	public $defaultPagerLimit = 10;
 
 	/**
-	 * Global facebook instance
+	 * Facebook singleton
 	 * @var Facebook
 	 */
 	private static $instance;
+
+	/**
+	 * Current user (singleton)
+	 * @var FacebookUser
+	 */
+	private static $me;
+
+	/**
+	 * Facebook application (singleton)
+	 * @var GraphObject
+	 */
+	private static $application;
 
 	/**
 	 * Returns the Facebook instance.
@@ -54,19 +66,38 @@ class Facebook extends \BaseFacebook {
 	 * @return Facebook
 	 */
 	static function getInstance() {
-		if (Facebook::$instance === null) {
+		if (self::$instance === null) {
 			// Session autostart.
 			if (session_id() == false) {
 				session_start();
 			}
 			// Create a Facebook instance using the "PHP SDK Unit Tests" AppId.
 			// The AppId should be overwriten with your own setAppId()
-			Facebook::$instance = new Facebook(array(
-				'appId' => '117743971608120',
-				'secret' => '943716006e74d9b9283d4d5d8ab93204',
-			));
+			self::$instance = new Facebook(array('appId' => '117743971608120', 'secret' => '943716006e74d9b9283d4d5d8ab93204'));
 		}
-		return Facebook::$instance;
+		return self::$instance;
+	}
+
+	/**
+	 * Current user (singleton)
+	 * @return FacebookUser
+	 */
+	static function me() {
+		if (self::$me === null) {
+			self::$me = new FacebookUser(self::getInstance()->getPersistentData('user_id', 'me'));
+		}
+		return self::$me;
+	}
+
+	/**
+	 * Current application (singleton)
+	 * @return FacebookUser
+	 */
+	static function application() {
+		if (self::$application === null) {
+			self::$application = new GraphObject(self::getInstance()->getAppId());
+		}
+		return self::$application;
 	}
 
 	/**
@@ -133,8 +164,8 @@ class Facebook extends \BaseFacebook {
 	 * @param array $parameters
 	 * @return mixed
 	 */
-	function get($path, $parameters = array()) {
-		return $this->api($path, 'GET', $parameters);
+	static function get($path, $parameters = array()) {
+		return self::getInstance()->api($path, 'GET', $parameters);
 	}
 
 	/**
@@ -144,8 +175,8 @@ class Facebook extends \BaseFacebook {
 	 * @param type $fql
 	 * @return type
 	 */
-	function query($fql) {
-		return $this->api(array(
+	static function query($fql) {
+		return self::getInstance()->api(array(
 					'method' => 'fql.query',
 					'query' => $fql,
 					'callback' => ''
@@ -159,12 +190,13 @@ class Facebook extends \BaseFacebook {
 	 * @param array $parameters
 	 * @return array
 	 */
-	function all($path, $parameters = array(), $pagerLimit = null) {
+	static function all($path, $parameters = array(), $pagerLimit = null) {
+		$facebook = self::getInstance();
 		if (isset($parameters['limit']) || isset($parameters['offset'])) { // The request is for a specific page
-			return $this->api($path, 'GET', $parameters);
+			return $facebook->api($path, 'GET', $parameters);
 		}
 		if ($pagerLimit === null) {
-			$pagerLimit = $this->defaultPagerLimit = 10;
+			$pagerLimit = $facebook->defaultPagerLimit = 10;
 		}
 		$page = 0;
 		$pages = array();
@@ -175,7 +207,7 @@ class Facebook extends \BaseFacebook {
 				notice('Maximum pager limit ('.$pagerLimit.') was reached');
 				break;
 			}
-			$response = $this->api($url->path, 'GET', $url->query); // fetch page
+			$response = $facebook->api($url->path, 'GET', $url->query); // fetch page
 			if ($page === 1 && $pages[0] === $response['data']) { // Does page 2 have identical results as page 1?
 				// Bug/loop detected in facebook's pagin.
 				// Example loop: /$friend_id/mutualfriends/$me_id
@@ -210,7 +242,7 @@ class Facebook extends \BaseFacebook {
 	 * @param array|GraphObject $parameters
 	 * @return mixed
 	 */
-	function post($path, $parameters = array()) {
+	static function post($path, $parameters = array()) {
 		if (is_object($parameters)) {
 			$parameters = get_public_vars($parameters);
 			foreach ($parameters as $field => $value) {
@@ -219,7 +251,7 @@ class Facebook extends \BaseFacebook {
 				}
 			}
 		}
-		return $this->api($path, 'POST', $parameters);
+		return self::getInstance()->api($path, 'POST', $parameters);
 	}
 
 	/**
@@ -229,8 +261,8 @@ class Facebook extends \BaseFacebook {
 	 * @param array $parameters
 	 * @return mixed
 	 */
-	function delete($path, $parameters = array()) {
-		return $this->api($path, 'DELETE', $parameters);
+	static function delete($path, $parameters = array()) {
+		return self::getInstance()->api($path, 'DELETE', $parameters);
 	}
 
 	/**
@@ -288,8 +320,23 @@ class Facebook extends \BaseFacebook {
 		return $permissions;
 	}
 
+	/**
+	 * Set the Application ID.
+	 *
+	 * @param string $appId The Application ID
+	 * @return BaseFacebook
+	 */
+	public function setAppId($appId) {
+		$this->appId = $appId;
+		self::$me = null;
+		self::$application = null;
+		return $this;
+	}
+
 	protected function clearAllPersistentData() {
 		unset($_SESSION['__Facebook__']);
+		self::$me = null;
+		self::$application = null;
 	}
 
 	protected function clearPersistentData($key) {

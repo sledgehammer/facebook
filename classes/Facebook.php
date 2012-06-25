@@ -79,23 +79,27 @@ class Facebook extends \BaseFacebook {
 	}
 
 	/**
-	 * Current user (singleton)
+	 * Current user (singleton).
+	 *
+	 * @param bool $preload  true: Fetch fields from facebook now. false: Fetch fields from facebook on access.
 	 * @return FacebookUser
 	 */
-	static function me() {
+	static function me($preload = false) {
 		if (self::$me === null) {
-			self::$me = new FacebookUser(self::getInstance()->getPersistentData('user_id', 'me'));
+			self::$me = new FacebookUser(self::getInstance()->getPersistentData('user_id', 'me'), $preload);
 		}
 		return self::$me;
 	}
 
 	/**
 	 * Current application (singleton)
+	 *
+	 * @param bool $preload  true: Fetch fields from facebook now. false: Fetch fields from facebook on access.
 	 * @return FacebookUser
 	 */
-	static function application() {
+	static function application($preload = false) {
 		if (self::$application === null) {
-			self::$application = new GraphObject(self::getInstance()->getAppId());
+			self::$application = new GraphObject(self::getInstance()->getAppId(), array(), $preload);
 		}
 		return self::$application;
 	}
@@ -177,10 +181,10 @@ class Facebook extends \BaseFacebook {
 	 */
 	static function query($fql) {
 		return self::getInstance()->api(array(
-					'method' => 'fql.query',
-					'query' => $fql,
-					'callback' => ''
-				));
+				'method' => 'fql.query',
+				'query' => $fql,
+				'callback' => ''
+			));
 	}
 
 	/**

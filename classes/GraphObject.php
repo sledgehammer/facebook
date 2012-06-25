@@ -12,12 +12,6 @@ namespace Sledgehammer;
 class GraphObject extends Object {
 
 	/**
-	 * The ID of the graph object.
-	 * @var number
-	 */
-	public $id;
-
-	/**
 	 * new: GraphObject created with id: null
 	 * constuct: Allow new properties to be added.
 	 * id_only: id and parameters are but no api call to fetch fields is made.
@@ -31,6 +25,12 @@ class GraphObject extends Object {
 	 * @var array
 	 */
 	private $_apiParameters;
+
+	/**
+	 * The ID of the graph object.
+	 * @var number
+	 */
+	public $id;
 
 	/**
 	 * Constructor

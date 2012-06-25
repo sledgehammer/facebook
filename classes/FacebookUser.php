@@ -566,6 +566,7 @@ class FacebookUser extends GraphObject {
 	 * Constructor
 	 * @param mixed $id
 	 * @param array $parameters
+	 * @param bool $preload  true: Fetch fields from facebook now. false: Fetch fields from facebook on access.
 	 */
 	function __construct($id, $parameters = null, $preload = false) {
 		if ($id === null || is_array($id)) {

@@ -176,15 +176,23 @@ class Facebook extends \BaseFacebook {
 	 * Retrieve data via an FQL (Facebook Query Language) query
 	 * @link https://developers.facebook.com/docs/reference/fql/
 	 *
-	 * @param type $fql
-	 * @return type
+	 * @param string $fql FQL Query
+	 * @param array $options  array('local_cache' => bool)
+	 * @return array
 	 */
-	static function query($fql) {
-		return self::getInstance()->api(array(
-				'method' => 'fql.query',
-				'query' => $fql,
-				'callback' => ''
-			));
+	static function query($fql, $options = array()) {
+		$request = array(
+			'method' => 'fql.query',
+			'query' => $fql,
+			'callback' => ''
+		);
+		if (array_value($options, 'local_cache')) {
+			if (empty($_SESSION['__Facebook__']['cache'][$fql])) { // // Cache miss?
+				$_SESSION['__Facebook__']['cache'][$fql] = self::getInstance()->api($request);
+			}
+			return $_SESSION['__Facebook__']['cache'][$fql];
+		}
+		return self::getInstance()->api($request);
 	}
 
 	/**

@@ -624,17 +624,11 @@ class FacebookUser extends GraphObject {
 			foreach ($response as $friend) {
 				$friends[] = new FacebookUser($friend);
 			}
-			$state = $this->_state;
-			$this->_state = 'construct';
-			$this->$property = new Collection($friends);
-			$this->_state = $state;
+			$this->__set(array($property => new Collection($friends)));
 			return $this->$property;
 		}
 		if ($property === 'mutualfriends') {
-			$state = $this->_state;
-			$this->_state = 'construct';
-			$this->$property = $this->getMutualfriendWith(Facebook::getInstance()->getUser());
-			$this->_state = $state;
+			$this->__set(array($property => $this->getMutualfriendWith(Facebook::getInstance()->getUser())));
 			return $this->$property;
 		}
 		return parent::__get($property);

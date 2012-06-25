@@ -25,7 +25,7 @@ class GraphObject extends Object {
 	 *
 	 * @var string
 	 */
-	protected $_state = 'new';
+	protected $_state = 'invalid';
 	/**
 	 * Facebook API call parameters, only available in "id_only" state.
 	 * @var array
@@ -46,16 +46,15 @@ class GraphObject extends Object {
 			unset($this->$property);
 		}
 		if ($id === null) {
+			$this->_state = 'new';
 			return;
 		}
 		if (is_array($id)) {
-			$this->_state = 'construct';
-			set_object_vars($this, $id);
+			$this->__set($id);
 			$this->_state = 'ready';
 			unset($this->_apiParameters);
 		} elseif ($preload) {
-			$this->_state = 'construct';
-			set_object_vars($this, Facebook::get($id, $parameters));
+			$this->__set(Facebook::get($id, $parameters));
 			$this->_state = 'ready';
 			unset($this->_apiParameters);
 		} else {
@@ -91,9 +90,7 @@ class GraphObject extends Object {
 		if (array_key_exists($property, $connections) === false) { // not a (known) connection?
 			if ($this->_state === 'id_only') {
 				$fields = Facebook::get($this->id, $this->_apiParameters);
-
-				$this->_state = 'construct';
-				set_object_vars($this, $fields);
+				$this->__set($fields);
 				$this->_state = 'ready';
 				unset($this->_apiParameters);
 				if (array_key_exists($property, $fields)) {
@@ -110,7 +107,6 @@ class GraphObject extends Object {
 			}
 		}
 		try {
-			$state = $this->_state;
 			// Retrieve a connection
 			if (isset($connections[$property]) && $connections[$property] !== '\Sledgehammer\GraphObject') {
 				$class = $connections[$property];
@@ -124,14 +120,10 @@ class GraphObject extends Object {
 			foreach ($response as $data) {
 				$objects[] = new $class($data);
 			}
-
-			$this->_state = 'construct';
-			$this->$property = new Collection($objects);
-			$this->_state = $state;
+			$this->__set(array($property => new Collection($objects)));
 			return $this->$property;
 		} catch (\Exception $e) {
 			report_exception($e);
-			$this->_state = $state;
 			return parent::__get($property);
 		}
 	}
@@ -139,10 +131,19 @@ class GraphObject extends Object {
 	/**
 	 * Allow adding properties in the "construct" fase.
 	 *
-	 * @param string $property
+	 * @param string|array $property
 	 * @param mixed $value
 	 */
-	function __set($property, $value) {
+	function __set($property, $value = null) {
+		if (is_array($property)) {
+			$state = $this->_state;
+			$this->_state = 'construct';
+			foreach ($property as $name => $value) {
+				$this->$name = $value;
+			}
+			$this->_state = $state;
+			return;
+		}
 		if ($this->_state === 'construct') {
 			$this->$property = $value;
 		} else {

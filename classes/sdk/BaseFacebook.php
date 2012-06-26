@@ -156,34 +156,12 @@ abstract class BaseFacebook extends Sledgehammer\Object {
   /**
    * Set the App Secret.
    *
-   * @param string $apiSecret The App Secret
-   * @return BaseFacebook
-   * @deprecated
-   */
-  public function setApiSecret($apiSecret) {
-    $this->setAppSecret($apiSecret);
-    return $this;
-  }
-
-  /**
-   * Set the App Secret.
-   *
    * @param string $appSecret The App Secret
    * @return BaseFacebook
    */
   public function setAppSecret($appSecret) {
     $this->appSecret = $appSecret;
     return $this;
-  }
-
-  /**
-   * Get the App Secret.
-   *
-   * @return string the App Secret
-   * @deprecated
-   */
-  public function getApiSecret() {
-    return $this->getAppSecret();
   }
 
   /**
@@ -213,17 +191,6 @@ abstract class BaseFacebook extends Sledgehammer\Object {
    */
   public function getFileUploadSupport() {
     return $this->fileUploadSupport;
-  }
-
-  /**
-   * DEPRECATED! Please use getFileUploadSupport instead.
-   *
-   * Get the file upload support status.
-   *
-   * @return boolean true if and only if the server supports file upload.
-   */
-  public function useFileUploadSupport() {
-    return $this->getFileUploadSupport();
   }
 
   /**

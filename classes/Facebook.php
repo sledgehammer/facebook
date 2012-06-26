@@ -81,12 +81,11 @@ class Facebook extends \BaseFacebook {
 	/**
 	 * Current user (singleton).
 	 *
-	 * @param bool $preload  true: Fetch fields from facebook now. false: Fetch fields from facebook on access.
 	 * @return FacebookUser
 	 */
-	static function me($preload = false) {
+	static function me() {
 		if (self::$me === null) {
-			self::$me = new FacebookUser(self::getInstance()->getPersistentData('user_id', 'me'), $preload);
+			self::$me = new FacebookUser(self::getInstance()->getPersistentData('user_id', 'me'), null, true);
 		}
 		return self::$me;
 	}
@@ -94,12 +93,11 @@ class Facebook extends \BaseFacebook {
 	/**
 	 * Current application (singleton)
 	 *
-	 * @param bool $preload  true: Fetch fields from facebook now. false: Fetch fields from facebook on access.
 	 * @return FacebookUser
 	 */
-	static function application($preload = false) {
+	static function application() {
 		if (self::$application === null) {
-			self::$application = new GraphObject(self::getInstance()->getAppId(), array(), $preload);
+			self::$application = new GraphObject(self::getInstance()->getAppId(), array('local_cache' => true), true);
 		}
 		return self::$application;
 	}
@@ -146,7 +144,7 @@ class Facebook extends \BaseFacebook {
 	}
 
 	/**
-	 * Check if the accessToken is active/known
+	 * Check if the accessToken is active/known.
 	 * @return bool
 	 */
 	function isConnected() {
@@ -338,11 +336,32 @@ class Facebook extends \BaseFacebook {
 	 * @param string $appId The Application ID
 	 * @return BaseFacebook
 	 */
-	public function setAppId($appId) {
+	function setAppId($appId) {
 		$this->appId = $appId;
+		$this->clearCache();
+		return $this;
+	}
+
+	/**
+	 * Sets the access token for api calls.  Use this if you get
+	 * your access token by other means and just want the SDK
+	 * to use it.
+	 *
+	 * @param string $accessToken an access token.
+	 * @return BaseFacebook
+	 */
+	function setAccessToken($accessToken) {
+		if ($accessToken !== $this->getPersistentData('access_token')) {
+			$this->clearCache();
+		}
+		$this->accessToken = $accessToken;
+		return $this;
+	}
+
+	protected function clearCache() {
 		self::$me = null;
 		self::$application = null;
-		return $this;
+		$this->clearPersistentData('cache');
 	}
 
 	protected function clearAllPersistentData() {

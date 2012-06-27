@@ -23,6 +23,18 @@ class Facebook extends \BaseFacebook {
 	public $executionTime = 0;
 
 	/**
+	 * (Re)connect when the access token
+	 * @var bool
+	 */
+	public $autoConnect = true;
+
+	/**
+	 * Scope with persimssion the app requires.
+	 * @var array|string
+	 */
+	public $autoConnectPermissions = array();
+
+	/**
 	 * All logged facebook requests.
 	 * @var array
 	 */
@@ -60,46 +72,26 @@ class Facebook extends \BaseFacebook {
 	private static $application;
 
 	/**
-	 * Returns the Facebook instance.
-	 * Remember to set the AppId.
+	 * Use Facebook::configure() to initialize the facebook instance.
 	 *
-	 * @return Facebook
+	 * @param string $appId
+	 * @param string $appSecret
+	 * @param array $options
 	 */
-	static function getInstance() {
-		if (self::$instance === null) {
-			// Session autostart.
-			if (session_id() == false) {
-				session_start();
-			}
-			// Create a Facebook instance using the "PHP SDK Unit Tests" AppId.
-			// The AppId should be overwriten with your own setAppId()
-			self::$instance = new Facebook(array('appId' => '117743971608120', 'secret' => '943716006e74d9b9283d4d5d8ab93204'));
+	function __construct($appId, $appSecret, $options = array()) {
+		// Session autostart.
+		if (session_id() == false) {
+			session_start();
 		}
-		return self::$instance;
-	}
-
-	/**
-	 * Current user (singleton).
-	 *
-	 * @return FacebookUser
-	 */
-	static function me() {
-		if (self::$me === null) {
-			self::$me = new FacebookUser(self::getInstance()->getPersistentData('user_id', 'me'), null, true);
+		$this->appId = $appId;
+		$this->appSecret = $appSecret;
+		$state = $this->getPersistentData('state');
+		if (!empty($state)) {
+			$this->state = $state;
 		}
-		return self::$me;
-	}
-
-	/**
-	 * Current application (singleton)
-	 *
-	 * @return FacebookUser
-	 */
-	static function application() {
-		if (self::$application === null) {
-			self::$application = new GraphObject(self::getInstance()->getAppId(), array('local_cache' => true), true);
+		foreach ($options as $property => $value) {
+			$this->$property = $value;
 		}
-		return self::$application;
 	}
 
 	/**
@@ -113,6 +105,7 @@ class Facebook extends \BaseFacebook {
 	 * @return true
 	 */
 	function connect($permissions = array(), $parameters = array()) {
+		$this->autoConnect = false;
 		if (isset($_GET['error']) || isset($_GET['error_reason'])) {
 			throw new \Exception($_GET['error_description']);
 		}
@@ -127,7 +120,7 @@ class Facebook extends \BaseFacebook {
 				$accessToken = $this->getAccessToken(); // Retrieves accesstoken and calls setPersistentData()
 			}
 		}
-		if ($accessToken) {
+		if (count($permissions) > 0 && $accessToken) {
 			// Validate permissions
 			$acceptedPermissions = $this->getPermissions();
 			foreach ($permissions as $permission) {
@@ -157,6 +150,177 @@ class Facebook extends \BaseFacebook {
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Make an API call.
+	 *
+	 * @throws Exceptions on failure
+	 * @return mixed response
+	 */
+	function api(/* polymorphic */) {
+		$arguments = func_get_args();
+		// Normalize fields parameter.
+		if (isset($arguments[2]['fields']) && is_array($arguments[2]['fields'])) {
+			$arguments[2]['fields'] = implode(',', $arguments[2]['fields']);
+		}
+		// Check cache
+		if (isset($arguments[2]['local_cache']) && $arguments[2]['local_cache']) { // Enable caching for the request?
+			$cache = sha1(json_encode($arguments));
+			if (isset($_SESSION['__Facebook__']['cache'][$cache])) {
+				return $_SESSION['__Facebook__']['cache'][$cache]; // Cache hit
+			}
+			unset($arguments[2]['local_cache']);
+		}
+		// Execute the Facebook API call.
+		$start = microtime(true);
+		$this->requestCount++;
+		try {
+			$response = call_user_func_array('parent::api', $arguments);
+			$executionTime = (microtime(true) - $start);
+		} catch (\FacebookApiException $e) {
+			// Detect if the error was caused by an invalid accessToken, and (re)connect
+			if ($this->autoConnect == false || $_SERVER['REQUEST_METHOD'] != 'GET') {
+				throw $e;
+			}
+			$messages = array(
+				'An active access token must be used to query information about the current user\.', // Not logged in.
+				'Error validating access token: User [0-9]+ has not authorized application [0-9]+\.' // Was logged in, but user uninstalled the application.
+				// @todo timeout
+			);
+			$invalidAccessToken = false;
+			$errorMessage = $e->getMessage();
+			foreach ($messages as $message) {
+				if (preg_match('/^'.$message.'$/', $errorMessage)) {
+					$invalidAccessToken = true;
+					break;
+				}
+			}
+			if ($invalidAccessToken === false) { // Not a connection error?
+				throw $e;
+			}
+			if ($this->connect($this->autoConnectPermissions)) {
+				// Automatic (re)connect was successful, retry api call.
+				$start = microtime(true);
+				$response = call_user_func_array('parent::api', $arguments);
+			} else {
+				throw $e;
+			}
+		}
+		$this->executionTime += $executionTime;
+		// Log request
+		if ($this->requestCount < $this->logLimit) {
+			$this->log[] = array(
+				'request' => $arguments,
+				'exectutionTime' => $executionTime,
+			);
+		}
+		if (isset($cache)) {
+			$_SESSION['__Facebook__']['cache'][$cache] = $response;
+		}
+		return $response;
+	}
+
+	/**
+	 * Get the permissions/scope of the connection.
+	 * @return array
+	 */
+	function getPermissions() {
+		$response = $this->api('me/permissions', 'GET', array('local_cache' => true));
+		$permissions = array();
+		foreach ($response['data'][0] as $permission => $enabled) {
+			if ($enabled) {
+				$permissions[] = $permission;
+			}
+		}
+		return $permissions;
+	}
+
+	/**
+	 * Set the Application ID.
+	 *
+	 * @param string $appId The Application ID
+	 * @return BaseFacebook
+	 */
+	function setAppId($appId) {
+		if ($this->appId !== $appId) {
+			$this->clearCache();
+		}
+		$this->appId = $appId;
+		return $this;
+	}
+
+	/**
+	 * Sets the access token for api calls.  Use this if you get
+	 * your access token by other means and just want the SDK
+	 * to use it.
+	 *
+	 * @param string $accessToken an access token.
+	 * @return BaseFacebook
+	 */
+	function setAccessToken($accessToken) {
+		if ($accessToken !== $this->getPersistentData('access_token')) {
+			$this->clearCache();
+		}
+		$this->accessToken = $accessToken;
+		return $this;
+	}
+
+	/**
+	 * Configure the global Facebook instance.
+	 *
+	 * @param string $appId
+	 * @param string $appSecret
+	 * @param string|array $permissions Scope of the application.
+	 * @param array $options optional settings: array(
+	 *  'fileUploadSupport' => bool,
+	 *  'autoConnect' => bool,
+	 *  'logLimit' => int,
+	 *  'defaultPagerLimit' => int
+	 *  'signedRequest' => string
+	 *  'accessToken' => string,
+	 * )
+	 * @return void
+	 */
+	static function configure($appId, $appSecret, $permissions = array(), $options = array()) {
+		$options['autoConnectPermissions'] = $permissions;
+		self::$instance = new Facebook($appId, $appSecret, $options);
+	}
+
+	/**
+	 * Returns the Facebook instance.
+	 *
+	 * @return Facebook
+	 */
+	static function getInstance() {
+		if (self::$instance === null) {
+			throw new InfoException('Facebook AppID was not configured', 'Use Facebook::configure($appId, $appSecret); to configure your AppID.');
+		}
+		return self::$instance;
+	}
+
+	/**
+	 * Current user (singleton).
+	 *
+	 * @return FacebookUser
+	 */
+	static function me() {
+		if (self::$me === null) {
+			self::$me = new FacebookUser(self::getInstance()->getPersistentData('user_id', 'me'), null, true);
+		}
+		return self::$me;
+	}
+
+	/**
+	 * Current application (singleton)
+	 *
+	 * @return FacebookUser
+	 */
+	static function application() {
+		if (self::$application === null) {
+			self::$application = new GraphObject(self::getInstance()->getAppId(), array('local_cache' => true), true);
+		}
+		return self::$application;
 	}
 
 	/**
@@ -275,92 +439,10 @@ class Facebook extends \BaseFacebook {
 		return self::getInstance()->api($path, 'DELETE', $parameters);
 	}
 
-	/**
-	 * Make an API call.
-	 *
-	 * @throws Exceptions on failure
-	 * @return mixed response
-	 */
-	function api(/* polymorphic */) {
-		$start = microtime(true);
-		$arguments = func_get_args();
-		if (isset($arguments[2]['fields']) && is_array($arguments[2]['fields'])) {
-			$arguments[2]['fields'] = implode(',', $arguments[2]['fields']);
-		}
-		if (isset($arguments[2]['local_cache']) && $arguments[2]['local_cache']) { // Enable caching for the request?
-			$cache = sha1(json_encode($arguments));
-			if (isset($_SESSION['__Facebook__']['cache'][$cache])) {
-				return $_SESSION['__Facebook__']['cache'][$cache]; // Cache hit
-			}
-			unset($arguments[2]['local_cache']);
-		}
-
-		$response = call_user_func_array('parent::api', $arguments);
-		// Log resquest
-		$this->executionTime += (microtime(true) - $start);
-		$this->requestCount++;
-		if ($this->requestCount < $this->logLimit) {
-			$this->log[] = array(
-				'request' => $arguments,
-				'exectutionTime' => (microtime(true) - $start)
-			);
-		}
-		if (isset($cache)) {
-			$_SESSION['__Facebook__']['cache'][$cache] = $response;
-		}
-		return $response;
-	}
-
-	/**
-	 * Get the permissions/scope of the connection.
-	 * @return array
-	 */
-	function getPermissions() {
-		$permissions = $this->getPersistentData('permissions', false);
-		if ($permissions === false) {
-			$response = $this->get('me/permissions');
-			$permissions = array();
-			foreach ($response['data'][0] as $permission => $enabled) {
-				if ($enabled) {
-					$permissions[] = $permission;
-				}
-			}
-			$this->setPersistentData('permissions', $permissions);
-		}
-		return $permissions;
-	}
-
-	/**
-	 * Set the Application ID.
-	 *
-	 * @param string $appId The Application ID
-	 * @return BaseFacebook
-	 */
-	function setAppId($appId) {
-		$this->appId = $appId;
-		$this->clearCache();
-		return $this;
-	}
-
-	/**
-	 * Sets the access token for api calls.  Use this if you get
-	 * your access token by other means and just want the SDK
-	 * to use it.
-	 *
-	 * @param string $accessToken an access token.
-	 * @return BaseFacebook
-	 */
-	function setAccessToken($accessToken) {
-		if ($accessToken !== $this->getPersistentData('access_token')) {
-			$this->clearCache();
-		}
-		$this->accessToken = $accessToken;
-		return $this;
-	}
-
 	protected function clearCache() {
 		self::$me = null;
 		self::$application = null;
+		$this->user = null;
 		$this->clearPersistentData('cache');
 	}
 

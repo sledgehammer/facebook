@@ -574,10 +574,10 @@ class FacebookUser extends GraphObject {
 			return;
 		}
 		if ($parameters === null) { // Fetch all allowed fields?
-			parent::__construct($id, array(
+			$parameters = array(
 				'fields' => implode(',', $this->getAllowedFields(array('id' => $id))),
 				'local_cache' => true
-			), $preload);
+			);
 		} else {
 			parent::__construct($id, $parameters, $preload);
 		}
@@ -619,17 +619,15 @@ class FacebookUser extends GraphObject {
 
 	function __get($property) {
 		if ($property === 'friends') {
-			$path = $this->id.'/friends';
-			$friends = array();
-			$response = Facebook::all($path, array('fields' => $this->getAllowedFields(), 'local_cache' => true));
-			foreach ($response as $friend) {
-				$friends[] = new FacebookUser($friend);
-			}
-			$this->__set(array($property => new Collection($friends)));
+			$parameters = array(
+				'fields' => $this->getAllowedFields(array('friend' => true)),
+				'local_cache' => true
+			);
+			$this->__set(array($property => $this->getFriends($parameters)));
 			return $this->$property;
 		}
 		if ($property === 'mutualfriends') {
-			$this->__set(array($property => $this->getMutualfriendWith(Facebook::getInstance()->getUser())));
+			$this->__set(array($property => $this->getMutualfriendWith(Facebook::me()->id)));
 			return $this->$property;
 		}
 		return parent::__get($property);
@@ -651,8 +649,7 @@ class FacebookUser extends GraphObject {
 			'website' => 'website',
 			'work' => 'work_history',
 		);
-		$fb = Facebook::getInstance();
-		if (isset($options['id']) && ($options['id'] === 'me' || $options['id'] === $fb->getUser())) { // Current user?
+		if (isset($options['id']) && ($options['id'] === 'me' || $options['id'] === Facebook::me()->id)) { // Current user?
 			foreach ($permissions as $property => $permission) {
 				$permissions[$property] = 'user_'.$permission;
 			}
@@ -670,49 +667,100 @@ class FacebookUser extends GraphObject {
 	}
 
 	protected static function getKnownConnections($options = array()) {
-		return array(
-			'accounts' => null,
-			'achievements' => null,
-			'activities' => null,
-			'albums' => null,
-			'apprequests' => null,
-			'books' => null,
-			'checkins' => null,
-			'events' => null,
-			'family' => null,
-			'feed' => null,
-			'friendlists' => null,
-			'friendrequests' => null,
-			'friends' => '\Sledgehammer\FacebookUser',
-			'games' => null,
-			'groups' => null,
-			'home' => null,
-			'inbox' => null,
-			'interests' => null,
-			'likes' => '\Sledgehammer\FacebookPage',
-			'links' => null,
-			'locations' => null,
-			'movies' => null,
-			'music' => null,
-			'mutualfriends' => '\Sledgehammer\FacebookUser',
-			'notes' => null,
-			'notifications' => null,
-			'outbox' => null,
-			'payments' => null,
-			'permissions' => null,
-			'photos' => null,
-			'pokes' => null,
-			'posts' => '\Sledgehammer\FacebookPost',
-			'questions' => null,
-			'scores' => null,
-			'statuses' => null,
-			'subscribedto' => null,
-			'subscribers' => null,
-			'tagged' => null,
-			'television' => null,
-			'updates' => null,
-			'videos' => null,
+		$connections = array(
+			'accounts' => array(),
+			'achievements' => array(),
+			'activities' => array(),
+			'albums' => array(),
+			'apprequests' => array(),
+			'books' => array(),
+			'checkins' => array(),
+			'events' => array(),
+			'family' => array(),
+			'feed' => array(),
+			'friendlists' => array(),
+			'friendrequests' => array(),
+			'friends' => array('class' => '\Sledgehammer\FacebookUser'),
+			'games' => array(),
+			'groups' => array(),
+			'home' => array(),
+			'inbox' => array(),
+			'interests' => array(),
+			'likes' => array('class' => '\Sledgehammer\FacebookPage'),
+			'links' => array(),
+			'locations' => array(),
+			'movies' => array(),
+			'music' => array(),
+			'mutualfriends' => array('class' => '\Sledgehammer\FacebookUser'),
+			'notes' => array(),
+			'notifications' => array(),
+			'outbox' => array(),
+			'payments' => array(),
+			'permissions' => array(),
+			'photos' => array(),
+			'pokes' => array(),
+			'posts' => array('class' => '\Sledgehammer\FacebookPost'),
+			'questions' => array(),
+			'scores' => array(),
+			'statuses' => array(),
+			'subscribedto' => array(),
+			'subscribers' => array(),
+			'tagged' => array(),
+			'television' => array(),
+			'updates' => array(),
+			'videos' => array(),
 		);
+		// user_* / friend_* permissions
+		$permissions = array(
+			'achievements' => 'games_activity',
+			'activities' => 'activities',
+			'albums' => 'photos',
+			'books' => 'likes',
+			'checkins' => 'checkins',
+			'events' => 'events',
+			'groups' => 'groups',
+			'interests' => 'interests',
+			'likes' => 'likes',
+			//locations => photos, status and/or checkins.
+			'movies' => 'likes',
+			'music' => 'likes',
+			'photos' => 'photo_video_tags',
+			'scores' => 'games_activity',
+			'television' => 'likes',
+			'videos' => 'videos',
+		);
+		// only available for loggedin user
+		$userPermissions = array(
+			'home' => 'read_stream',
+			'inbox' => 'read_mailbox',
+			'family' => 'user_relationships',
+			'feed' => 'read_stream',
+			'friendlists' => 'read_friendlists',
+			'friendrequests' => 'user_requests',
+			'games' => 'likes',
+			'links' => 'read_stream',
+			'notes' => 'read_stream',
+			'notifications' => 'manage_notifications',
+			'outbox' => 'read_mailbox',
+			'pokes' => 'read_mailbox',
+			'questions' => 'user_questions',
+			'statuses' => 'read_stream',
+			'tagged' => 'read_stream',
+			'updates' => 'read_mailbox',
+		);
+		if (isset($options['id']) && ($options['id'] === 'me' || $options['id'] === Facebook::me()->id)) { // Current user?
+			$prefix = 'user_';
+			foreach ($userPermissions as $connection => $permission) {
+				$connections[$connection]['permission'] = $permission;
+			}
+		} else {
+			// @todo check if it's a friend
+			$prefix = 'friends_';
+		}
+		foreach ($permissions as $connection => $permission) {
+			$connections[$connection]['permission'] = $prefix.$permission;
+		}
+		return $connections;
 	}
 
 }

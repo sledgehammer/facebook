@@ -108,8 +108,8 @@ class GraphObject extends Object {
 		}
 		try {
 			// Retrieve a connection
-			if (isset($connections[$property]) && $connections[$property] !== '\Sledgehammer\GraphObject') {
-				$parameters = array('fields' => call_user_func(array($class, 'getAllowedFields')));
+			if (isset($connections[$property]['class'])) {
+				$parameters = array('fields' => call_user_func(array($connections[$property]['class'], 'getAllowedFields')));
 			} else {
 				$parameters = array();
 			}
@@ -162,11 +162,14 @@ class GraphObject extends Object {
 				$parameters = array();
 			}
 			$connection = lcfirst(substr($method, 3));
-			$connections = $this->getKnownConnections();
-			if (isset($connections[$connection]) && $connections[$connection] !== '\Sledgehammer\GraphObject') {
-				$class = $connections[$connection];
+			$connections = $this->getKnownConnections(array('id' => $this->id));
+			if (isset($connections[$connection]['class'])) {
+				$class = $connections[$connection]['class'];
 			} else {
 				$class = '\Sledgehammer\GraphObject';
+			}
+			if (isset($connections[$connection]['permission']) && $connections[$connection]['permission'] !== 'denied' && in_array($connections[$connection]['permission'], Facebook::getInstance()->getPermissions()) === false) {
+				notice('Connection "'.$connection.'" requires the "'.$connections[$connection]['permission'].'" permission', 'Current permissions: '.quoted_human_implode(' and ', Facebook::getInstance()->getPermissions()));
 			}
 			$objects = array();
 			$response = Facebook::all($this->id.'/'.$connection, $parameters);

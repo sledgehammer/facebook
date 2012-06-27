@@ -29,12 +29,6 @@ class Facebook extends \BaseFacebook {
 	public $autoConnect = true;
 
 	/**
-	 * Scope with persimssion the app requires.
-	 * @var array|string
-	 */
-	public $autoConnectPermissions = array();
-
-	/**
 	 * All logged facebook requests.
 	 * @var array
 	 */
@@ -52,6 +46,13 @@ class Facebook extends \BaseFacebook {
 	 * @var int
 	 */
 	public $defaultPagerLimit = 10;
+
+	/**
+	 * The permissions the app requires.
+	 * @link https://developers.facebook.com/docs/authentication/permissions/
+	 * @var array|string
+	 */
+	private $requiredPermissions = array();
 
 	/**
 	 * Facebook singleton
@@ -78,13 +79,17 @@ class Facebook extends \BaseFacebook {
 	 * @param string $appSecret
 	 * @param array $options
 	 */
-	function __construct($appId, $appSecret, $options = array()) {
+	function __construct($appId, $appSecret, $permissions = array(), $options = array()) {
 		// Session autostart.
 		if (session_id() == false) {
 			session_start();
 		}
 		$this->appId = $appId;
 		$this->appSecret = $appSecret;
+		if (is_array($permissions)) {
+			$permissions = implode(',', $permissions);
+		}
+		$this->requiredPermissions = $permissions;
 		$state = $this->getPersistentData('state');
 		if (!empty($state)) {
 			$this->state = $state;
@@ -97,6 +102,7 @@ class Facebook extends \BaseFacebook {
 	/**
 	 * Set up a Facebook connection.
 	 * Might cause a redirect which ends the current script.
+	 * When no 'scope is given, the $this->requiredPermissions are used.
 	 *
 	 * @param array $parameters  List with optional parameters
 	 *   'display' => 'popup'
@@ -104,13 +110,17 @@ class Facebook extends \BaseFacebook {
 	 *   'redirect_url'> callback url
 	 * @return true
 	 */
-	function connect($permissions = array(), $parameters = array()) {
+	function connect($parameters = array()) {
 		$this->autoConnect = false;
 		if (isset($_GET['error']) || isset($_GET['error_reason'])) {
 			throw new \Exception($_GET['error_description']);
 		}
+		if (isset($parameters['scope']) === false) {
+			$parameters['scope'] = $this->requiredPermissions;
+		}
+		$permissions = $parameters['scope'];
 		if (is_string($permissions)) {
-			$permissions = explode(',', $permissions);
+			$permissions = explode(',', $parameters['scope']);
 		}
 		$accessToken = false;
 		if (isset($_GET['code'])) {
@@ -199,7 +209,7 @@ class Facebook extends \BaseFacebook {
 			if ($invalidAccessToken === false) { // Not a connection error?
 				throw $e;
 			}
-			if ($this->connect($this->autoConnectPermissions)) {
+			if ($this->connect($this->requiredPermissions)) {
 				// Automatic (re)connect was successful, retry api call.
 				$start = microtime(true);
 				$response = call_user_func_array('parent::api', $arguments);
@@ -271,7 +281,7 @@ class Facebook extends \BaseFacebook {
 	 *
 	 * @param string $appId
 	 * @param string $appSecret
-	 * @param string|array $permissions Scope of the application.
+	 * @param string|array $permissions Scope of the application. @link https://developers.facebook.com/docs/authentication/permissions/
 	 * @param array $options optional settings: array(
 	 *  'fileUploadSupport' => bool,
 	 *  'autoConnect' => bool,
@@ -283,8 +293,7 @@ class Facebook extends \BaseFacebook {
 	 * @return void
 	 */
 	static function configure($appId, $appSecret, $permissions = array(), $options = array()) {
-		$options['autoConnectPermissions'] = $permissions;
-		self::$instance = new Facebook($appId, $appSecret, $options);
+		self::$instance = new Facebook($appId, $appSecret, $permissions, $options);
 	}
 
 	/**

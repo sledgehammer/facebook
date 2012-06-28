@@ -578,9 +578,8 @@ class FacebookUser extends GraphObject {
 				'fields' => implode(',', $this->getAllowedFields(array('id' => $id))),
 				'local_cache' => true
 			);
-		} else {
-			parent::__construct($id, $parameters, $preload);
 		}
+		parent::__construct($id, $parameters, $preload);
 	}
 
 	/**
@@ -649,7 +648,7 @@ class FacebookUser extends GraphObject {
 			'website' => 'website',
 			'work' => 'work_history',
 		);
-		if (isset($options['id']) && ($options['id'] === 'me' || $options['id'] === Facebook::me()->id)) { // Current user?
+		if (isset($options['id']) && ($options['id'] === 'me' || $options['id'] === Facebook::getInstance()->getUser())) { // Current user?
 			foreach ($permissions as $property => $permission) {
 				$permissions[$property] = 'user_'.$permission;
 			}
@@ -748,7 +747,7 @@ class FacebookUser extends GraphObject {
 			'tagged' => 'read_stream',
 			'updates' => 'read_mailbox',
 		);
-		if (isset($options['id']) && ($options['id'] === 'me' || $options['id'] === Facebook::me()->id)) { // Current user?
+		if (isset($options['id']) && ($options['id'] === 'me' || $options['id'] === Facebook::getInstance()->getUser())) { // Current user?
 			$prefix = 'user_';
 			foreach ($userPermissions as $connection => $permission) {
 				$connections[$connection]['permission'] = $permission;

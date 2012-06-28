@@ -209,7 +209,7 @@ class Facebook extends \BaseFacebook {
 			if ($invalidAccessToken === false) { // Not a connection error?
 				throw $e;
 			}
-			if ($this->connect($this->requiredPermissions)) {
+			if ($this->connect()) {
 				// Automatic (re)connect was successful, retry api call.
 				$start = microtime(true);
 				$response = call_user_func_array('parent::api', $arguments);

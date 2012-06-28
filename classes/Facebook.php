@@ -125,14 +125,14 @@ class Facebook extends \BaseFacebook {
 		$accessToken = false;
 		if (isset($_GET['code'])) {
 			$accessToken = $this->getAccessToken(); // Retrieves accesstoken and calls setPersistentData()
-		} elseif (isset($_POST['signed_request'])) {
+		} elseif (isset($_REQUEST['signed_request'])) {
 			if ($this->getUser() != 0) {
-				$accessToken = $this->getAccessToken(); // Retrieves accesstoken and calls setPersistentData()
+				$accessToken = $this->getUserAccessToken(); // Retrieves accesstoken and calls setPersistentData()
 			}
 		}
 		if (count($permissions) > 0 && $accessToken) {
 			// Validate permissions
-			$acceptedPermissions = $this->getPermissions();
+			$acceptedPermissions = $this->api('me/permissions');
 			foreach ($permissions as $permission) {
 				if (in_array($permission, $acceptedPermissions) === false) {
 					$this->clearAllPersistentData();
@@ -143,7 +143,13 @@ class Facebook extends \BaseFacebook {
 		}
 		$parameters['scope'] = implode(',', $permissions);
 		$this->clearAllPersistentData();
-		redirect($this->getLoginUrl($parameters));
+		if (isset($_REQUEST['signed_request'])) { // Inside a Facebook Canvas/Page
+			$parameters['redirect_uri'] = $_SERVER['HTTP_REFERER']; // Return to the page/canvas
+			echo '<script type="text/javascript">window.top.location='.json_encode($this->getLoginUrl($parameters)).';</script>';
+			exit();
+		} else {
+			redirect($this->getLoginUrl($parameters));
+		}
 	}
 
 	/**
@@ -190,13 +196,12 @@ class Facebook extends \BaseFacebook {
 			$executionTime = (microtime(true) - $start);
 		} catch (\FacebookApiException $e) {
 			// Detect if the error was caused by an invalid accessToken, and (re)connect
-			if ($this->autoConnect == false || $_SERVER['REQUEST_METHOD'] != 'GET') {
+			if ($this->autoConnect == false || ($_SERVER['REQUEST_METHOD'] != 'GET' && empty($_REQUEST['signed_request']))) {
 				throw $e;
 			}
 			$messages = array(
-				'An active access token must be used to query information about the current user\.', // Not logged in.
+				'An active access token must be used to query information about the current user\.', // Not logged in / timed out.
 				'Error validating access token: User [0-9]+ has not authorized application [0-9]+\.' // Was logged in, but user uninstalled the application.
-				// @todo timeout
 			);
 			$invalidAccessToken = false;
 			$errorMessage = $e->getMessage();

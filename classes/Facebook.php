@@ -155,19 +155,21 @@ class Facebook extends \BaseFacebook {
 	}
 
 	/**
-	 * Check if the accessToken is active/known.
+	 * Check if the access_token is active.
+	 * Caveat: Triggers a "/me" api call.
 	 * @return bool
 	 */
 	function isConnected() {
-		// @todo Real status check/request?
-		// @todo expire ts controleren?
-		if ($this->getPersistentData('access_token')) {
-			if ($this->getUser() == 0) {
-				return false;
-			}
+		$autoConnect = $this->autoConnect;
+		$this->autoConnect = false; // Temporarily disable autoConnect
+		try {
+			$this->api('/me', 'GET', array('fields' => 'id'));
+			$this->autoConnect = $autoConnect;
 			return true;
+		} catch (\Exception $e) {
+			$this->autoConnect = $autoConnect;
+			return false;
 		}
-		return false;
 	}
 
 	/**

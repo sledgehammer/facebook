@@ -104,6 +104,8 @@ class Facebook extends \BaseFacebook {
 	 * Might cause a redirect which ends the current script.
 	 * When no 'scope is given, the $this->requiredPermissions are used.
 	 *
+	 * To use an redirect_url to Facebook Page and prevent a 191 error, change "?v=" to "?sk=" in the pageurl. https://www.facebook.com/pages/$pagename/$pageId?sk=app_$appId
+	 *
 	 * @param array $parameters  List with optional parameters
 	 *   'display' => 'popup'
 	 *   'scope' => array('email','read_stream', etc) @link https://developers.facebook.com/docs/authentication/permissions/

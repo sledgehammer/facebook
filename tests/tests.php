@@ -16,6 +16,7 @@
  *
  * @package Facebook
  */
+USE Sledgehammer\Facebook;
 
 class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   const APP_ID = '117743971608120';

@@ -136,9 +136,9 @@ class Facebook extends \BaseFacebook {
 			// Validate permissions
 			$acceptedPermissions = $this->api('me/permissions');
 			foreach ($permissions as $permission) {
-				if (in_array($permission, $acceptedPermissions) === false) {
+				if (isset($acceptedPermissions['data'][0][$permission]) === false || $acceptedPermissions['data'][0][$permission] != 1) {
 					$this->clearAllPersistentData();
-					throw new \Exception('Permission to "'.$permission.'" was denied');
+					throw new InfoException('Permission to "'.$permission.'" was denied', array('Granted permissions' => $acceptedPermissions['data'][0]));
 				}
 			}
 			return true;

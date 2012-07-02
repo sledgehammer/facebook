@@ -80,9 +80,8 @@ class Facebook extends \BaseFacebook {
 	 * @param array $options
 	 */
 	function __construct($appId, $appSecret, $permissions = array(), $options = array()) {
-		// Session autostart.
 		if (session_id() == false) {
-			session_start();
+			warning('No session started');
 		}
 		$this->appId = $appId;
 		$this->appSecret = $appSecret;
@@ -126,19 +125,21 @@ class Facebook extends \BaseFacebook {
 		}
 		$accessToken = false;
 		if (isset($_GET['code'])) {
-			$accessToken = $this->getAccessToken(); // Retrieves accesstoken and calls setPersistentData()
+			$accessToken = $this->getUserAccessToken(); // Retrieves accesstoken and calls setPersistentData()
 		} elseif (isset($_REQUEST['signed_request'])) {
 			if ($this->getUser() != 0) {
 				$accessToken = $this->getUserAccessToken(); // Retrieves accesstoken and calls setPersistentData()
 			}
 		}
-		if (count($permissions) > 0 && $accessToken) {
-			// Validate permissions
-			$acceptedPermissions = $this->api('me/permissions');
-			foreach ($permissions as $permission) {
-				if (isset($acceptedPermissions['data'][0][$permission]) === false || $acceptedPermissions['data'][0][$permission] != 1) {
-					$this->clearAllPersistentData();
-					throw new InfoException('Permission to "'.$permission.'" was denied', array('Granted permissions' => $acceptedPermissions['data'][0]));
+		if ($accessToken) {
+			if (count($permissions) > 0) {
+				// Validate permissions
+				$acceptedPermissions = $this->api('me/permissions');
+				foreach ($permissions as $permission) {
+					if (isset($acceptedPermissions['data'][0][$permission]) === false || $acceptedPermissions['data'][0][$permission] != 1) {
+						$this->clearAllPersistentData();
+						throw new InfoException('Permission to "'.$permission.'" was denied', array('Granted permissions' => $acceptedPermissions['data'][0]));
+					}
 				}
 			}
 			return true;

@@ -211,6 +211,7 @@ class Facebook extends \BaseFacebook {
 			if ($invalidAccessToken === false) { // Not a connection error?
 				throw $e;
 			}
+			$this->destroySession(); // Remove the invalid access token.
 			if ($this->connect()) {
 				// Automatic (re)connect was successful, retry api call.
 				$response = call_user_func_array('parent::api', $arguments);

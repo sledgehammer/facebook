@@ -93,6 +93,10 @@ class Facebook extends \BaseFacebook {
 		if (!empty($state)) {
 			$this->state = $state;
 		}
+		$accessToken = $this->getPersistentData('access_token');
+		if (!empty($accessToken)) {
+			$this->accessToken = $accessToken;
+		}
 		foreach ($options as $property => $value) {
 			$this->$property = $value;
 		}
@@ -156,21 +160,11 @@ class Facebook extends \BaseFacebook {
 	}
 
 	/**
-	 * Check if the access_token is active.
-	 * Caveat: Triggers a "/me" api call.
+	 * Check if a user accesstoken is available
 	 * @return bool
 	 */
 	function isConnected() {
-		$autoConnect = $this->autoConnect;
-		$this->autoConnect = false; // Temporarily disable autoConnect
-		try {
-			$this->api('/me', 'GET', array('fields' => 'id'));
-			$this->autoConnect = $autoConnect;
-			return true;
-		} catch (\Exception $e) {
-			$this->autoConnect = $autoConnect;
-			return false;
-		}
+		return $this->getAccessToken() != $this->getApplicationAccessToken();
 	}
 
 	/**
@@ -194,11 +188,8 @@ class Facebook extends \BaseFacebook {
 			unset($arguments[2]['local_cache']);
 		}
 		// Execute the Facebook API call.
-		$start = microtime(true);
-		$this->requestCount++;
 		try {
 			$response = call_user_func_array('parent::api', $arguments);
-			$executionTime = (microtime(true) - $start);
 		} catch (\FacebookApiException $e) {
 			// Detect if the error was caused by an invalid accessToken, and (re)connect
 			if ($this->autoConnect == false || ($_SERVER['REQUEST_METHOD'] != 'GET' && empty($_REQUEST['signed_request']))) {
@@ -222,24 +213,44 @@ class Facebook extends \BaseFacebook {
 			}
 			if ($this->connect()) {
 				// Automatic (re)connect was successful, retry api call.
-				$start = microtime(true);
 				$response = call_user_func_array('parent::api', $arguments);
 			} else {
 				throw $e;
 			}
 		}
-		$this->executionTime += $executionTime;
-		// Log request
-		if ($this->requestCount < $this->logLimit) {
-			$this->log[] = array(
-				'request' => $arguments,
-				'exectutionTime' => $executionTime,
-			);
-		}
+
 		if (isset($cache)) {
 			$_SESSION['__Facebook__']['cache'][$cache] = $response;
 		}
 		return $response;
+	}
+
+	/**
+	 * Makes an HTTP request. This method can be overridden by subclasses if
+	 * developers want to do fancier things or use something other than curl to
+	 * make the request.
+	 *
+	 * @param string $url The URL to make the request to
+	 * @param array $params The parameters to use for the POST body
+	 * @param CurlHandler $ch Initialized curl handle
+	 *
+	 * @return string The response text
+	 */
+	protected function makeRequest($url, $params, $ch = null) {
+		$this->requestCount++;
+		$start = microtime(true);
+		$result = parent::makeRequest($url, $params, $ch);
+		$executionTime = (microtime(true) - $start);
+		$this->executionTime += $executionTime;
+		// Log request
+		if ($this->requestCount < $this->logLimit) {
+			$this->log[] = array(
+				'url' => $url,
+				'params' => $params,
+				'exectutionTime' => $executionTime,
+			);
+		}
+		return $result;
 	}
 
 	/**

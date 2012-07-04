@@ -104,8 +104,8 @@ class Facebook extends \BaseFacebook {
 
 	/**
 	 * Set up a Facebook connection.
-	 * Might cause a redirect which ends the current script.
-	 * When no 'scope is given, the $this->requiredPermissions are used.
+	 * Causes a redirect which ends the current script.
+	 * When no 'scope' is given, the $this->requiredPermissions are used.
 	 *
 	 * To use an redirect_url to Facebook Page and prevent a 191 error, change "?v=" to "?sk=" in the pageurl. https://www.facebook.com/pages/$pagename/$pageId?sk=app_$appId
 	 *
@@ -136,6 +136,7 @@ class Facebook extends \BaseFacebook {
 			}
 		}
 		if ($accessToken) {
+			$this->setAccessToken($accessToken);
 			if (count($permissions) > 0) {
 				// Validate permissions
 				$acceptedPermissions = $this->api('me/permissions');

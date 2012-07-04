@@ -80,9 +80,6 @@ class Facebook extends \BaseFacebook {
 	 * @param array $options
 	 */
 	function __construct($appId, $appSecret, $permissions = array(), $options = array()) {
-		if (session_id() == false) {
-			warning('No session started');
-		}
 		$this->appId = $appId;
 		$this->appSecret = $appSecret;
 		if (is_array($permissions)) {
@@ -96,6 +93,15 @@ class Facebook extends \BaseFacebook {
 		$accessToken = $this->getPersistentData('access_token');
 		if (!empty($accessToken)) {
 			$this->accessToken = $accessToken;
+		}
+		if (isset($options['ignore_session_state'])) { // Option to prevent the "No session started" warning.
+			$ignoreSessionState = $options['ignore_session_state'];
+			unset($options['ignore_session_state']);
+		} else {
+			$ignoreSessionState = false;
+		}
+		if ($ignoreSessionState == false && session_id() == false) {
+			warning('No session started');
 		}
 		foreach ($options as $property => $value) {
 			$this->$property = $value;
@@ -148,6 +154,9 @@ class Facebook extends \BaseFacebook {
 				}
 			}
 			return true;
+		}
+		if (session_id() == false) {
+			throw new \Exception('Unable to connect to facebook, a session is required');
 		}
 		$parameters['scope'] = implode(',', $permissions);
 		$this->clearAllPersistentData();
@@ -264,7 +273,7 @@ class Facebook extends \BaseFacebook {
 			$this->log[] = array(
 				'url' => $url,
 				'params' => $params,
-				'exectutionTime' => $executionTime,
+				'executionTime' => $executionTime,
 			);
 		}
 		return $result;

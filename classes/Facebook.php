@@ -161,11 +161,26 @@ class Facebook extends \BaseFacebook {
 	}
 
 	/**
-	 * Check if a user accesstoken is available
+	 * Check if an AccessToken is available.
+	 * @param bool $validate Perform an API call to check if the AccessToken is still active.
 	 * @return bool
 	 */
-	function isConnected() {
-		return $this->getAccessToken() != $this->getApplicationAccessToken();
+	function isConnected($validate = false) {
+		$connected = ($this->getAccessToken() != $this->getApplicationAccessToken());
+		if ($connected && $validate) {
+			$autoConnect = $this->autoConnect;
+			$this->autoConnect = false; // Temporarily disable autoConnect
+			try {
+				$this->api('/me', 'GET', array('fields' => 'id'));
+				$this->autoConnect = $autoConnect;
+				return true;
+			} catch (\Exception $e) {
+				$this->autoConnect = $autoConnect;
+				$this->clearPersistentData('access_token');
+				return false;
+			}
+		}
+		return $connected;
 	}
 
 	/**

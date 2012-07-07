@@ -55,14 +55,11 @@ class BuildFacebookClassFromDocumentation extends Util {
 				continue; // Skip table header
 			}
 			$field = array(
-				'name' => (string) $row->td[0]->code,
+				'name' => strip_tags($row->td[0]->asXML()),
 				'description' => strip_tags($row->td[1]->children()->asXML()),
 				'permissions' => array(),
 				'returns' => strip_tags($row->td[3]->children()->asXML()),
 			);
-			if ($field['name'] === '') {
-				$field['name'] = (string) $row->td[0]->a;
-			}
 			foreach ($row->td[2]->p->children()->code as $permission) {
 				if (in_array((string) $permission, array('access_token'))) {
 					continue; // skip "access_token"
@@ -84,6 +81,8 @@ class BuildFacebookClassFromDocumentation extends Util {
 		$php .= " * ".$info['class']."\n";
 		$php .= " */\n";
 		$php .= "namespace Sledgehammer\\Facebook;\n";
+		$php .= "use Sledgehammer\Collection;\n";
+		$php .= "use Sledgehammer\GraphObject;\n";
 		$php .= "/**\n";
 		$php .= " * ".$info['description']."\n";
 		if (count($info['fields']['id']['permissions'])) {
@@ -97,7 +96,7 @@ class BuildFacebookClassFromDocumentation extends Util {
 		$php .= "\n";
 		foreach ($info['fields'] as $field) {
 			$php .= "\t/**\n";
-			$php .= "\t * ".$field['description'].".\n";
+			$php .= "\t * ".$this->addDot($field['description'])."\n";
 			if ($info['fields']['id']['permissions'] !== $field['permissions']) {
 				$php .= "\t * Requires ".quoted_human_implode(' or ', $field['permissions'])." permissions.\n";
 			}
@@ -114,30 +113,20 @@ class BuildFacebookClassFromDocumentation extends Util {
 			$knownConnections = '';
 			foreach ($info['connections'] as $connection) {
 				$php .= "\t/**\n";
-				$php .= "\t * ".$connection['description'].".\n";
-				$php .= "\t *\n\t * ".$connection['returns']."\n";
+				$php .= "\t * ".$this->addDot($connection['description'])."\n";
 				if ($info['fields']['id']['permissions'] !== $connection['permissions']) {
 					$php .= "\t * Requires ".quoted_human_implode(' or ', $connection['permissions'])." permissions.\n";
 				}
+				$php .= "\t *\n\t * Returns ".$connection['returns']."\n";
 				$php .= "\t * @var Collection|GraphObject\n";
 				$php .= "\t */\n";
 				if (isset($info['fields'][$connection['name']])) {
-					echo '//'; // Prevent "duplicate property" parse error.
+					$php .= '//'; // Prevent "duplicate property" parse error.
 				}
 				$php .= "\tpublic $".$connection['name'].";\n";
 				$php .= "\n";
 				$knownConnections .= "\t\t\t'".$connection['name']."' => array(),\n";
 			}
-			$php .= "\n";
-			// @todo generate getFieldPermissions()
-
-			$php .= "\tprotected static function getKnownConnections(\$options = array()) {\n";
-			$php .= "\t\t\$connections = array(\n";
-			$php .= $knownConnections;
-			$php .= "\t\t);\n";
-			// @todo Add permissions based on 'user/friend' option.
-			$php .= "\t\treturn \$connections;\n";
-			$php .= "\t}\n";
 			$php .= "\n";
 		}
 		if ($info['constructor']) {
@@ -161,9 +150,27 @@ class BuildFacebookClassFromDocumentation extends Util {
 			$php .= "\t}\n";
 			$php .= "\n";
 		}
+		// @todo generate getFieldPermissions()
+		if (count($info['connections']) != 0) {
+			$php .= "\tprotected static function getKnownConnections(\$options = array()) {\n";
+			$php .= "\t\t\$connections = array(\n";
+			$php .= $knownConnections;
+			$php .= "\t\t);\n";
+			// @todo Add permissions based on 'user/friend' option.
+			$php .= "\t\treturn \$connections;\n";
+			$php .= "\t}\n";
+			$php .= "\n";
+		}
 		$php .= "}\n\n";
 		$php .= "?>";
 		return $php;
+	}
+
+	private function addDot($description) {
+		if (text($description)->endsWith('.')) {
+			return $description;
+		}
+		return $description.'.';
 	}
 
 }

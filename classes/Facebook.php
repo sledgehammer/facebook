@@ -23,10 +23,10 @@ class Facebook extends \BaseFacebook {
 	public $executionTime = 0;
 
 	/**
-	 * (Re)connect when the access token
+	 * Automaticly redirect to the login page when there is no active access token.
 	 * @var bool
 	 */
-	public $autoConnect = true;
+	private $autoLogin = true;
 
 	/**
 	 * All logged facebook requests.
@@ -109,11 +109,11 @@ class Facebook extends \BaseFacebook {
 	}
 
 	/**
-	 * Set up a Facebook connection.
-	 * Causes a redirect which ends the current script.
+	 * Redirect to the Facebook loginUrl to retrieve an active accessToken.
+	 *
 	 * When no 'scope' is given, the $this->requiredPermissions are used.
 	 *
-	 * To use an redirect_url to Facebook Page and prevent a 191 error, change "?v=" to "?sk=" in the pageurl. https://www.facebook.com/pages/$pagename/$pageId?sk=app_$appId
+	 * @tip To use an redirect_url to Facebook Page and prevent a 191 error, change "?v=" to "?sk=" in the pageurl. https://www.facebook.com/pages/$pagename/$pageId?sk=app_$appId
 	 *
 	 * @param array $parameters  List with optional parameters
 	 *   'display' => 'popup'
@@ -121,8 +121,8 @@ class Facebook extends \BaseFacebook {
 	 *   'redirect_url'> callback url
 	 * @return true
 	 */
-	function connect($parameters = array()) {
-		$this->autoConnect = false;
+	function login($parameters = array()) {
+		$this->autoLogin = false;
 		if (isset($_GET['error']) || isset($_GET['error_reason'])) {
 			throw new \Exception($_GET['error_description']);
 		}
@@ -156,7 +156,7 @@ class Facebook extends \BaseFacebook {
 			return true;
 		}
 		if (session_id() == false) {
-			throw new \Exception('Unable to connect to facebook, a session is required');
+			throw new \Exception('Unable to login to facebook, a session is required');
 		}
 		$parameters['scope'] = implode(',', $permissions);
 		$this->clearAllPersistentData();
@@ -174,22 +174,22 @@ class Facebook extends \BaseFacebook {
 	 * @param bool $validate Perform an API call to check if the AccessToken is still active.
 	 * @return bool
 	 */
-	function isConnected($validate = false) {
-		$connected = ($this->getAccessToken() != $this->getApplicationAccessToken());
-		if ($connected && $validate) {
-			$autoConnect = $this->autoConnect;
-			$this->autoConnect = false; // Temporarily disable autoConnect
+	function isLoggedIn($validate = false) {
+		$loggedIn = ($this->getAccessToken() != $this->getApplicationAccessToken());
+		if ($loggedIn && $validate) {
+			$autoLogin = $this->autoLogin;
+			$this->autoLogin = false; // Temporarily disable autoLogin
 			try {
 				$this->api('/me', 'GET', array('fields' => 'id'));
-				$this->autoConnect = $autoConnect;
+				$this->autoLogin = $autoLogin;
 				return true;
 			} catch (\Exception $e) {
-				$this->autoConnect = $autoConnect;
+				$this->autoLogin = $autoLogin;
 				$this->clearPersistentData('access_token');
 				return false;
 			}
 		}
-		return $connected;
+		return $loggedIn;
 	}
 
 	/**
@@ -216,8 +216,8 @@ class Facebook extends \BaseFacebook {
 		try {
 			$response = call_user_func_array('parent::api', $arguments);
 		} catch (\FacebookApiException $e) {
-			// Detect if the error was caused by an invalid accessToken, and (re)connect
-			if ($this->autoConnect == false || ($_SERVER['REQUEST_METHOD'] != 'GET' && empty($_REQUEST['signed_request']))) {
+			// Detect if the error was caused by an invalid accessToken
+			if ($this->autoLogin == false || ($_SERVER['REQUEST_METHOD'] != 'GET' && empty($_REQUEST['signed_request']))) {
 				throw $e;
 			}
 			$messages = array(
@@ -233,12 +233,12 @@ class Facebook extends \BaseFacebook {
 					break;
 				}
 			}
-			if ($invalidAccessToken === false) { // Not a connection error?
+			if ($invalidAccessToken === false) { // Not an authentication error?
 				throw $e;
 			}
 			$this->destroySession(); // Remove the invalid access token.
-			if ($this->connect()) {
-				// Automatic (re)connect was successful, retry api call.
+			if ($this->login()) {
+				// Automatic login was successful, retry api call.
 				$response = call_user_func_array('parent::api', $arguments);
 			} else {
 				throw $e;
@@ -280,7 +280,7 @@ class Facebook extends \BaseFacebook {
 	}
 
 	/**
-	 * Get the permissions/scope of the connection.
+	 * Get the permissions/scope of the current user.
 	 * @return array
 	 */
 	function getPermissions() {
@@ -332,7 +332,7 @@ class Facebook extends \BaseFacebook {
 	 * @param string|array $permissions Scope of the application. @link https://developers.facebook.com/docs/authentication/permissions/
 	 * @param array $options optional settings: array(
 	 *  'fileUploadSupport' => bool,
-	 *  'autoConnect' => bool,
+	 *  'autoLogin' => bool,
 	 *  'logLimit' => int,
 	 *  'defaultPagerLimit' => int
 	 *  'signedRequest' => string

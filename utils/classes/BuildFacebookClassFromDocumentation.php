@@ -25,15 +25,14 @@ class BuildFacebookClassFromDocumentation extends Util {
 			$xml = simplexml_import_dom($dom);
 			$link = $xml->xpath('//div[@class="breadcrumbs"]/a[last()]');
 			$path = explode('/', trim($link[0]['href'], '/'));
+			$elements = $xml->xpath('//div[@id="bodyText"]');
 			$info = array(
 				'class' => 'Facebook'.ucfirst(end($path)),
-				'link' => 'https://developers.facebook.com/'.implode('/', $path).'/'
+				'link' => 'https://developers.facebook.com/'.implode('/', $path).'/',
+				'description' => strip_tags($elements[0]->p[0]->asXML()),
+				'fields' => $this->extractFields($elements[0]->table[0]->tr),
+				'connections' => $this->extractFields($elements[0]->table[1]->tr),
 			);
-
-			$elements = $xml->xpath('//div[@id="bodyText"]');
-			$info['fields'] = $this->extractFields($elements[0]->table[0]->tr);
-			$info['connections'] = $this->extractFields($elements[0]->table[1]->tr);
-
 			return new Dump($this->generatePhp($info));
 		} else {
 			return $form;
@@ -46,6 +45,9 @@ class BuildFacebookClassFromDocumentation extends Util {
 	 * @return array
 	 */
 	function extractFields(\SimpleXMLElement $rows) {
+		if ($rows[0]->td->count() != 4) { // Not a "Name, Description, Permissions, Returns" table?
+			return array();
+		}
 		$fields = array();
 		foreach ($rows as $row) {
 			if ($row->td[0]->b == 'Name') {
@@ -66,7 +68,7 @@ class BuildFacebookClassFromDocumentation extends Util {
 				}
 				$field['permissions'][] = (string) $permission;
 			}
-			$fields[] = $field;
+			$fields[$field['name']] = $field;
 		}
 		return $fields;
 	}
@@ -81,8 +83,14 @@ class BuildFacebookClassFromDocumentation extends Util {
 		$php .= " * ".$info['class']."\n";
 		$php .= " */\n";
 		$php .= "namespace Sledgehammer;\n";
-		$php = "/**\n";
-		$php .= " * \n"; // todo general description
+		$php .= "/**\n";
+		$php .= " * ".$info['description']."\n";
+		if (count($info['fields']['id']['permissions'])) {
+			$php .= " * Requires ".quoted_human_implode(' or ', $info['fields']['id']['permissions'])." permissions.\n";
+		}
+		$php .= " *\n";
+		$php .= " * @link ".$info['link']."\n";
+		$php .= " * @package Facebook\n";
 		$php .= " */\n";
 		$php .= "class ".$info['class']." extends GraphObject {\n";
 		foreach ($info['fields'] as $field) {
@@ -95,29 +103,35 @@ class BuildFacebookClassFromDocumentation extends Util {
 				$php .= "\t *\n\t * ".$field['returns']."\n";
 			}
 			$php .= "\t */\n";
-			$php .= "\t public $".$field['name'].";\n";
+			$php .= "\tpublic $".$field['name'].";\n";
 		}
-		$knownConnections = '';
-		foreach ($info['connections'] as $connection) {
+		if (count($info['connections']) != 0) {
+			$knownConnections = '';
+			foreach ($info['connections'] as $connection) {
+				$php .= "\t\n";
+				$php .= "\t/**\n";
+				$php .= "\t * ".$connection['description'].".\n";
+				$php .= "\t *\n\t * ".$connection['returns']."\n";
+				// @todo add permissions documentation
+				$php .= "\t * @var Collection|GraphObject\n";
+				$php .= "\t */\n";
+				if (isset($info['fields'][$connection['name']])) {
+					echo '//'; // Prevent "duplicate property" parse error.
+				}
+				$php .= "\tpublic $".$connection['name'].";\n";
+				$knownConnections .= "\t\t\t'".$connection['name']."' => array(),\n";
+			}
 			$php .= "\t\n";
-			$php .= "\t/**\n";
-			$php .= "\t * ".$connection['description'].".\n";
-			$php .= "\t *\n\t * ".$connection['returns']."\n";
-			// @todo add permissions documentation
-			$php .= "\t * @var Collection|GraphObject\n";
-			$php .= "\t */\n";
-			$php .= "\t public $".$connection['name'].";\n";
-			$knownConnections .= "\t\t\t'".$connection['name']."' => array(),\n";
+			// @todo generate getFieldPermissions()
+
+			$php .= "\tprotected static function getKnownConnections(\$options = array()) {\n";
+			$php .= "\t\t\$connections = array(\n";
+			$php .= $knownConnections;
+			$php .= "\t\t);\n";
+			// @todo Add permissions based on 'user/friend' option.
+			$php .= "\t\treturn \$connections;\n";
+			$php .= "\t}\n\n";
 		}
-		$php .= "\t\n";
-		// @todo generate getFieldPermissions()
-		$php .= "\tprotected static function getKnownConnections(\$options = array()) {\n";
-		$php .= "\t\t\$connections = array(\n";
-		$php .= $knownConnections;
-		$php .= "\t\t);\n";
-		// @todo Add permissions based on 'user/friend' option.
-		$php .= "\t\treturn \$connections;\n";
-		$php .= "\t}\n\n";
 		$php .= "}\n\n";
 		$php .= "?>";
 		return $php;

@@ -274,7 +274,7 @@ class FacebookUser extends GraphObject {
 	 * The photo albums this user has created.
 	 * @permission user_photos or friends_photos.
 	 * array of Album objects.
-	 * @var Collection|GraphObject
+	 * @var Collection|FacebookAlbum
 	 */
 	public $albums;
 

@@ -2,12 +2,12 @@
 /**
  * FacebookPage
  */
-namespace Sledgehammer;
+namespace Sledgehammer\Facebook;
 /**
  * A Page in the Graph API.
  * @link https://developers.facebook.com/docs/reference/api/page/
  */
-class FacebookPage extends GraphObject {
+class Page extends \Sledgehammer\GraphObject {
 
 	/**
 	 * The Page's ID

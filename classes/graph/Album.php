@@ -2,13 +2,13 @@
 /**
  * FacebookAlbum
  */
-namespace Sledgehammer;
+namespace Sledgehammer\Facebook;
 /**
  * An album of photos as represented in the Graph API.
  *
  * @package Facebook
  */
-class FacebookAlbum extends GraphObject {
+class Album extends \Sledgehammer\GraphObject {
 
 	/**
 	 * The album ID.

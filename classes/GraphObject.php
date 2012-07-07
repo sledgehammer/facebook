@@ -4,15 +4,18 @@
  */
 namespace Sledgehammer;
 /**
- * An object oriented interface to the Facebook Graph API.
- * https://developers.facebook.com/docs/reference/api/
+ * An object in the Facebook Graph API.
  *
+ * An object oriented interface to the Graph API.
+ * Fields and connection are (lazily loaded) properties.
+ *
+ * @link https://developers.facebook.com/docs/reference/api/
  * @package Facebook
  */
 class GraphObject extends Object {
 
 	/**
-	 * new: GraphObject created with id: null
+	 * new: Object created with id: null
 	 * constuct: Allow new properties to be added.
 	 * id_only: id and parameters are but no api call to fetch fields is made.
 	 * ready: fields are retrieved cia the facebook api.

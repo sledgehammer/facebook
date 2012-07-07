@@ -359,11 +359,11 @@ class Facebook extends \BaseFacebook {
 	/**
 	 * Current user (singleton).
 	 *
-	 * @return FacebookUser
+	 * @return Facebook\User
 	 */
 	static function me() {
 		if (self::$me === null) {
-			self::$me = new FacebookUser(self::getInstance()->getPersistentData('user_id', 'me'), null, true);
+			self::$me = new Facebook\User(self::getInstance()->getPersistentData('user_id', 'me'), null, true);
 		}
 		return self::$me;
 	}
@@ -371,11 +371,11 @@ class Facebook extends \BaseFacebook {
 	/**
 	 * Current application (singleton)
 	 *
-	 * @return FacebookUser
+	 * @return Facebook\Application
 	 */
 	static function application() {
 		if (self::$application === null) {
-			self::$application = new GraphObject(self::getInstance()->getAppId(), array('local_cache' => true), true);
+			self::$application = new Facebook\Application(self::getInstance()->getAppId(), null, true);
 		}
 		return self::$application;
 	}

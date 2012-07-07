@@ -2,13 +2,13 @@
 /**
  * FacebookPhoto
  */
-namespace Sledgehammer;
+namespace Sledgehammer\Facebook;
 /**
  * An individual photo as represented in the Graph API.
  *
  * @package Facebook
  */
-class FacebookPhoto extends GraphObject {
+class Photo extends \Sledgehammer\GraphObject {
 
 	/**
 	 * The photo ID.

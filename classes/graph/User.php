@@ -1,14 +1,16 @@
 <?php
 /**
- * FacebookRepositoryBackend
+ * User
  */
-namespace Sledgehammer;
+namespace Sledgehammer\Facebook;
+use Sledgehammer\Facebook;
+use Sledgehammer\Collection;
 /**
  * A user profile as represented in the Graph API.
  * @link https://developers.facebook.com/docs/reference/api/user/
  * @package Facebook
  */
-class FacebookUser extends GraphObject {
+class User extends \Sledgehammer\GraphObject {
 
 	/**
 	 * The user's Facebook ID
@@ -388,7 +390,7 @@ class FacebookUser extends GraphObject {
 	 * All the pages this user has liked.
 	 * @permission user_likes or friends_likes.
 	 * array of objects containing like id, name, category and create_time fields.
-	 * @var Collection|FacebookPage
+	 * @var Collection|Facebook\Page
 	 */
 	public $likes;
 
@@ -566,7 +568,7 @@ class FacebookUser extends GraphObject {
 	 * Constructor
 	 * @param mixed $id
 	 * @param array $parameters
-	 * @param bool $preload  true: Fetch fields from facebook now. false: Fetch fields from facebook on access.
+	 * @param bool $preload  true: Fetch fields now. false: Fetch fields when needed.
 	 */
 	function __construct($id, $parameters = null, $preload = false) {
 		if ($id === null || is_array($id)) {
@@ -586,12 +588,12 @@ class FacebookUser extends GraphObject {
 	 * Post a link or status-message to the users feed.
 	 * @permission publish_stream
 	 *
-	 * @param FacebookPost|GraphObject|array $post
-	 * @return FacebookPost
+	 * @param Facebook\Post|GraphObject|array $post
+	 * @return Facebook\Post
 	 */
 	function postToFeed($post) {
 		if (is_array($post)) {
-			$post = new FacebookPost($post);
+			$post = new Facebook\Post($post);
 		}
 		$fb = Facebook::getInstance();
 		if (in_array('publish_stream', $fb->getPermissions()) === false) {
@@ -611,7 +613,7 @@ class FacebookUser extends GraphObject {
 		$response = Facebook::all($this->id.'/mutualfriends/'.$userId, array('fields' => $this->getAllowedFields()));
 		$friends = array();
 		foreach ($response as $friend) {
-			$friends[] = new FacebookUser($friend);
+			$friends[] = new Facebook\User($friend);
 		}
 		return new Collection($friends);
 	}
@@ -679,18 +681,18 @@ class FacebookUser extends GraphObject {
 			'feed' => array(),
 			'friendlists' => array(),
 			'friendrequests' => array(),
-			'friends' => array('class' => '\Sledgehammer\FacebookUser'),
+			'friends' => array('class' => '\Sledgehammer\Facebook\User'),
 			'games' => array(),
 			'groups' => array(),
 			'home' => array(),
 			'inbox' => array(),
 			'interests' => array(),
-			'likes' => array('class' => '\Sledgehammer\FacebookPage'),
+			'likes' => array('class' => '\Sledgehammer\Facebook\Page'),
 			'links' => array(),
 			'locations' => array(),
 			'movies' => array(),
 			'music' => array(),
-			'mutualfriends' => array('class' => '\Sledgehammer\FacebookUser'),
+			'mutualfriends' => array('class' => '\Sledgehammer\Facebook\User'),
 			'notes' => array(),
 			'notifications' => array(),
 			'outbox' => array(),
@@ -698,7 +700,7 @@ class FacebookUser extends GraphObject {
 			'permissions' => array(),
 			'photos' => array(),
 			'pokes' => array(),
-			'posts' => array('class' => '\Sledgehammer\FacebookPost'),
+			'posts' => array('class' => '\Sledgehammer\Facebook\Post'),
 			'questions' => array(),
 			'scores' => array(),
 			'statuses' => array(),

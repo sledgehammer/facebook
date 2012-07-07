@@ -27,11 +27,12 @@ class BuildFacebookClassFromDocumentation extends Util {
 			$path = explode('/', trim($link[0]['href'], '/'));
 			$elements = $xml->xpath('//div[@id="bodyText"]');
 			$info = array(
-				'class' => 'Facebook'.ucfirst(end($path)),
+				'class' => ucfirst(end($path)),
 				'link' => 'https://developers.facebook.com/'.implode('/', $path).'/',
 				'description' => strip_tags($elements[0]->p[0]->asXML()),
 				'fields' => $this->extractFields($elements[0]->table[0]->tr),
 				'connections' => $this->extractFields($elements[0]->table[1]->tr),
+				'constructor' => strpos($elements[0]->table[0]->asXML(), 'only returned if') // ... "specifically requested via the fields URL parameter"
 			);
 			return new Dump($this->generatePhp($info));
 		} else {
@@ -45,7 +46,7 @@ class BuildFacebookClassFromDocumentation extends Util {
 	 * @return array
 	 */
 	function extractFields(\SimpleXMLElement $rows) {
-		if ($rows[0]->td->count() != 4) { // Not a "Name, Description, Permissions, Returns" table?
+		if ($rows->count() == 0 || $rows[0]->td->count() != 4) { // Not a "Name, Description, Permissions, Returns" table?
 			return array();
 		}
 		$fields = array();
@@ -82,7 +83,7 @@ class BuildFacebookClassFromDocumentation extends Util {
 		$php .= "/**\n";
 		$php .= " * ".$info['class']."\n";
 		$php .= " */\n";
-		$php .= "namespace Sledgehammer;\n";
+		$php .= "namespace Sledgehammer\\Facebook;\n";
 		$php .= "/**\n";
 		$php .= " * ".$info['description']."\n";
 		if (count($info['fields']['id']['permissions'])) {
@@ -92,11 +93,14 @@ class BuildFacebookClassFromDocumentation extends Util {
 		$php .= " * @link ".$info['link']."\n";
 		$php .= " * @package Facebook\n";
 		$php .= " */\n";
-		$php .= "class ".$info['class']." extends GraphObject {\n";
+		$php .= "class ".$info['class']." extends \Sledgehammer\GraphObject {\n";
+		$php .= "\n";
 		foreach ($info['fields'] as $field) {
-			$php .= "\t\n";
 			$php .= "\t/**\n";
 			$php .= "\t * ".$field['description'].".\n";
+			if ($info['fields']['id']['permissions'] !== $field['permissions']) {
+				$php .= "\t * Requires ".quoted_human_implode(' or ', $field['permissions'])." permissions.\n";
+			}
 			if (in_array($field['returns'], array('number', 'string'))) {
 				$php .= "\t * @var ".$field['returns']."\n";
 			} else {
@@ -104,24 +108,27 @@ class BuildFacebookClassFromDocumentation extends Util {
 			}
 			$php .= "\t */\n";
 			$php .= "\tpublic $".$field['name'].";\n";
+			$php .= "\n";
 		}
 		if (count($info['connections']) != 0) {
 			$knownConnections = '';
 			foreach ($info['connections'] as $connection) {
-				$php .= "\t\n";
 				$php .= "\t/**\n";
 				$php .= "\t * ".$connection['description'].".\n";
 				$php .= "\t *\n\t * ".$connection['returns']."\n";
-				// @todo add permissions documentation
+				if ($info['fields']['id']['permissions'] !== $connection['permissions']) {
+					$php .= "\t * Requires ".quoted_human_implode(' or ', $connection['permissions'])." permissions.\n";
+				}
 				$php .= "\t * @var Collection|GraphObject\n";
 				$php .= "\t */\n";
 				if (isset($info['fields'][$connection['name']])) {
 					echo '//'; // Prevent "duplicate property" parse error.
 				}
 				$php .= "\tpublic $".$connection['name'].";\n";
+				$php .= "\n";
 				$knownConnections .= "\t\t\t'".$connection['name']."' => array(),\n";
 			}
-			$php .= "\t\n";
+			$php .= "\n";
 			// @todo generate getFieldPermissions()
 
 			$php .= "\tprotected static function getKnownConnections(\$options = array()) {\n";
@@ -130,7 +137,29 @@ class BuildFacebookClassFromDocumentation extends Util {
 			$php .= "\t\t);\n";
 			// @todo Add permissions based on 'user/friend' option.
 			$php .= "\t\treturn \$connections;\n";
-			$php .= "\t}\n\n";
+			$php .= "\t}\n";
+			$php .= "\n";
+		}
+		if ($info['constructor']) {
+			$php .= "\t/**\n";
+			$php .= "\t * Constructor\n";
+			$php .= "\t * @param mixed \$id\n";
+			$php .= "\t * @param array \$parameters\n";
+			$php .= "\t * @param bool \$preload  true: Fetch fields now. false: Fetch fields when needed.\n";
+			$php .= "\t */\n";
+			$php .= "\tfunction __construct(\$id, \$parameters = null, \$preload = false) {\n";
+			$php .= "\t\tif (\$id === null || is_array(\$id)) {\n";
+			$php .= "\t\t\tparent::__construct(\$id, \$parameters, \$preload);\n";
+			$php .= "\t\t\treturn;\n";
+			$php .= "\t\t}\n";
+			$php .= "\t\tif (\$parameters === null) { // Fetch all allowed fields?\n";
+			$php .= "\t\t\t\$parameters = array(\n";
+			$php .= "\t\t\t\t'fields' => implode(',', \$this->getAllowedFields(array('id' => \$id))),\n";
+			$php .= "\t\t\t);\n";
+			$php .= "\t\t}\n";
+			$php .= "\t\tparent::__construct(\$id, \$parameters, \$preload);\n";
+			$php .= "\t}\n";
+			$php .= "\n";
 		}
 		$php .= "}\n\n";
 		$php .= "?>";

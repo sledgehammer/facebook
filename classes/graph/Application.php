@@ -3,6 +3,10 @@
  * Application
  */
 namespace Sledgehammer\Facebook;
+
+use Sledgehammer\Collection;
+use Sledgehammer\GraphObject;
+
 /**
  * An application registered on Facebook Platform as represented in the Graph API. Applications a user administers can be retrieved via the /accounts connection on the User object.
  *

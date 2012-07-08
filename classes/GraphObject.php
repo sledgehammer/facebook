@@ -223,7 +223,7 @@ class GraphObject extends Object {
 	}
 
 	/**
-	 * Fields/properties theat depend on permissions. array( field => permission)
+	 * Fields/properties that depend on permissions. array( field => permission)
 	 * @return array
 	 */
 	protected static function getFieldPermissions() {

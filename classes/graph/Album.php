@@ -1,11 +1,17 @@
 <?php
 /**
- * FacebookAlbum
+ * Album
  */
 namespace Sledgehammer\Facebook;
+
+use Sledgehammer\Collection;
+use Sledgehammer\GraphObject;
+
 /**
  * An album of photos as represented in the Graph API.
+ * Requires "user_photos" or "friend_photos" permissions.
  *
+ * @link https://developers.facebook.com/docs/reference/api/album/
  * @package Facebook
  */
 class Album extends \Sledgehammer\GraphObject {
@@ -95,16 +101,14 @@ class Album extends \Sledgehammer\GraphObject {
 
 	/**
 	 * The photos contained in this album.
-	 *
-	 * array of photo objects
-	 * @var Collection|FacebookPhoto
+	 * @var Collection|Photo
 	 */
 	public $photos;
 
 	/**
 	 * The likes made on this album.
 	 *
-	 * array of objects containing id and name fields.
+	 * Returns array of objects containing id and name fields.
 	 * @var Collection|GraphObject
 	 */
 	public $likes;
@@ -112,42 +116,22 @@ class Album extends \Sledgehammer\GraphObject {
 	/**
 	 * The comments made on this album.
 	 *
-	 * array of objects containing id, from, message and created_time fields.
+	 * Returns array of objects containing id, from, message and created_time fields.
 	 * @var Collection|GraphObject
 	 */
 	public $comments;
 
 	/**
-	 * The album's cover photo, the first picture uploaded to an album becomes the cover photo for the album..
+	 * The album's cover photo, the first picture uploaded to an album becomes the cover photo for the album.
 	 *
-	 * HTTP 302 redirect to URL of the album's cover picture
+	 * Returns HTTP 302 redirect to URL of the album's cover picture
 	 * @var Collection|GraphObject
 	 */
 	public $picture;
 
-	/**
-	 * Constructor
-	 * @param mixed $id
-	 * @param array $parameters
-	 * @param bool $preload  true: Fetch fields now. false: Fetch fields when needed.
-	 */
-	function __construct($id, $parameters = null, $preload = false) {
-		if ($id === null || is_array($id)) {
-			parent::__construct($id, $parameters, $preload);
-			return;
-		}
-		if ($parameters === null) { // Fetch all allowed fields?
-			$parameters = array(
-//				'fields' => implode(',', $this->getAllowedFields()),
-//				'local_cache' => true
-			);
-		}
-		parent::__construct($id, $parameters, $preload);
-	}
-
 	protected static function getKnownConnections($options = array()) {
 		$connections = array(
-			'photos' => array(),
+			'photos' => array('class' => '\Sledgehammer\Facebook\Photo'),
 			'likes' => array(),
 			'comments' => array(),
 			'picture' => array(),

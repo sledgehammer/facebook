@@ -11,13 +11,13 @@ class BuildFacebookClassFromDocumentation extends Util {
 	public function generateContent() {
 		// Can't download the documectation directly (required facebook login)
 		$form = new Form(array(
-			'class' => 'form-horizontal',
-			'legend' => 'Paste HTML from https://developers.facebook.com/docs/reference/api/$model/',
-			'fields' => array(
-				'HTML' => new Input(array('type' => 'textarea', 'name' => 'source')),
-				new Input(array('type' => 'submit', 'value' => 'Generate class', 'class' => 'btn btn-primary')),
-			)
-		));
+					'class' => 'form-horizontal',
+					'legend' => 'Paste HTML from https://developers.facebook.com/docs/reference/api/$model/',
+					'fields' => array(
+						'HTML' => new Input(array('type' => 'textarea', 'name' => 'source')),
+						new Input(array('type' => 'submit', 'value' => 'Generate class', 'class' => 'btn btn-primary')),
+					)
+				));
 		$data = $form->import($error);
 		if ($data) {
 			$dom = new \DOMDocument();
@@ -31,9 +31,16 @@ class BuildFacebookClassFromDocumentation extends Util {
 				'link' => 'https://developers.facebook.com/'.implode('/', $path).'/',
 				'description' => strip_tags($elements[0]->p[0]->asXML()),
 				'fields' => $this->extractFields($elements[0]->table[0]->tr),
-				'connections' => $this->extractFields($elements[0]->table[1]->tr),
+				'connections' => array(),
 				'constructor' => strpos($elements[0]->table[0]->asXML(), 'only returned if') // ... "specifically requested via the fields URL parameter"
 			);
+			if ($elements[0]->table[1] !== null) {
+				$info['connections'] = $this->extractFields($elements[0]->table[1]->tr);
+			}
+			if (count($info['fields']) == 0 && count($info['connections']) != 0) { // Thread documentation
+				$info['fields'] = $info['connections'];
+				$info['connections'] = $this->extractFields($elements[0]->table[2]->tr);
+			}
 			return new Dump($this->generatePhp($info));
 		} else {
 			return $form;
@@ -81,8 +88,10 @@ class BuildFacebookClassFromDocumentation extends Util {
 		$php .= " * ".$info['class']."\n";
 		$php .= " */\n";
 		$php .= "namespace Sledgehammer\\Facebook;\n";
+		$php .= "\n";
 		$php .= "use Sledgehammer\Collection;\n";
 		$php .= "use Sledgehammer\GraphObject;\n";
+		$php .= "\n";
 		$php .= "/**\n";
 		$php .= " * ".$info['description']."\n";
 		if (count($info['fields']['id']['permissions'])) {
@@ -97,10 +106,10 @@ class BuildFacebookClassFromDocumentation extends Util {
 		foreach ($info['fields'] as $field) {
 			$php .= "\t/**\n";
 			$php .= "\t * ".$this->addDot($field['description'])."\n";
-			if ($info['fields']['id']['permissions'] !== $field['permissions']) {
+			if (count($field['permissions']) !== 0 && $info['fields']['id']['permissions'] !== $field['permissions']) {
 				$php .= "\t * Requires ".quoted_human_implode(' or ', $field['permissions'])." permissions.\n";
 			}
-			if (in_array($field['returns'], array('number', 'string'))) {
+			if (in_array($field['returns'], array('number', 'string', 'boolean'))) {
 				$php .= "\t * @var ".$field['returns']."\n";
 			} else {
 				$php .= "\t *\n\t * ".$field['returns']."\n";
@@ -109,25 +118,74 @@ class BuildFacebookClassFromDocumentation extends Util {
 			$php .= "\tpublic $".$field['name'].";\n";
 			$php .= "\n";
 		}
+		$typeMapping = array(
+			'Achievement(instance)' => 'Achievement',
+			'Album' => 'Album',
+//			'Account' => Application or Page
+			'Event' => 'Event',
+			'Message' => 'Message',
+			'Order' => 'Order',
+			'Page' => 'Page',
+			'Photo' => 'Photo',
+			'Link' => 'Link',
+			'Thread' => 'Thread',
+			'User' => 'User',
+			// Aliases
+			'Friend' => 'User',
+			'Book' => 'Page',
+			'Movie' => 'Page',
+			'Like' => 'Page',
+			'Music' => 'Page',
+			'Television' => 'Page',
+			'Conversation' => 'Message',
+			'Conversation' => 'Message',
+		);
+		$invalidTypes = array(
+			'Id', 'The', // Invalid types
+			'Activity', 'Interest', 'Setting', // Ondocumented types
+			'Account', // Undetermined types
+		);
 		if (count($info['connections']) != 0) {
 			$knownConnections = '';
 			foreach ($info['connections'] as $connection) {
 				$php .= "\t/**\n";
 				$php .= "\t * ".$this->addDot($connection['description'])."\n";
-				if ($info['fields']['id']['permissions'] !== $connection['permissions']) {
+				if (count($connection['permissions']) !== 0 && $info['fields']['id']['permissions'] !== $connection['permissions']) {
 					$php .= "\t * Requires ".quoted_human_implode(' or ', $connection['permissions'])." permissions.\n";
 				}
-				$php .= "\t *\n\t * Returns ".$connection['returns']."\n";
-				$php .= "\t * @var Collection|GraphObject\n";
+				$type = false; // 'GraphObject';
+				if (preg_match('/array of ([a-z()]+) objects/', $connection['returns'], $match)) {
+					$type = ucfirst($match[1]);
+				} elseif (preg_match('/array of objects containing ([a-z()]+) /', $connection['returns'], $match)) {
+					$type = ucfirst($match[1]);
+				}
+				if (isset($typeMapping[$type])) { // Is the detected type valid?
+					$type = $typeMapping[$type];
+				} elseif ($type) {
+					if (in_array($type, $invalidTypes) == false) {
+						notice('Unknown type: "'.$type.'"');
+					}
+					$type = false;
+				}
+				if ($type) {
+					$php .= "\t * @var Collection|".$type."\n";
+				} else {
+					$php .= "\t *\n\t * Returns ".$connection['returns']."\n";
+					$php .= "\t * @var Collection|GraphObject\n";
+				}
+
 				$php .= "\t */\n";
 				if (isset($info['fields'][$connection['name']])) {
 					$php .= '//'; // Prevent "duplicate property" parse error.
 				}
 				$php .= "\tpublic $".$connection['name'].";\n";
 				$php .= "\n";
-				$knownConnections .= "\t\t\t'".$connection['name']."' => array(),\n";
+				$knownConnections .= "\t\t\t'".$connection['name']."' => array(";
+				if ($type) {
+					$knownConnections .= "'class' => '\\Sledgehammer\Facebook\\".$type."'";
+				}
+				$knownConnections .= "),\n";
 			}
-			$php .= "\n";
 		}
 		if ($info['constructor']) {
 			$php .= "\t/**\n";

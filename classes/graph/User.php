@@ -108,8 +108,7 @@ class User extends \Sledgehammer\GraphObject {
 
 	/**
 	 * The user's account verification status, either true or false (see below).
-	 *
-	 * boolean
+	 * @var boolean
 	 */
 	public $verified;
 
@@ -282,9 +281,7 @@ class User extends \Sledgehammer\GraphObject {
 	/**
 	 * The achievements for the user.
 	 * Requires "user_games_activity" or "friends_games_activity" permissions.
-	 *
-	 * Returns array of achievement(instance) objects
-	 * @var Collection|GraphObject
+	 * @var Collection|Achievement
 	 */
 	public $achievements;
 
@@ -317,9 +314,7 @@ class User extends \Sledgehammer\GraphObject {
 	/**
 	 * The books listed on the user's profile.
 	 * Requires "user_likes" or "friends_likes" permissions.
-	 *
-	 * Returns array of objects containing book id, name, category and create_time fields.
-	 * @var Collection|GraphObject
+	 * @var Collection|Page
 	 */
 	public $books;
 
@@ -335,9 +330,7 @@ class User extends \Sledgehammer\GraphObject {
 	/**
 	 * The events this user is attending.
 	 * Requires "user_events" or "friends_events" permissions.
-	 *
-	 * Returns array of objects containing event id, name, start_time, end_time, location and rsvp_status defaulting to the past two weeks.
-	 * @var Collection|GraphObject
+	 * @var Collection|Event
 	 */
 	public $events;
 
@@ -379,8 +372,6 @@ class User extends \Sledgehammer\GraphObject {
 
 	/**
 	 * The user's friends.
-	 *
-	 * Returns array of objects containing friend id and name fields.
 	 * @var Collection|User
 	 */
 	public $friends;
@@ -415,9 +406,7 @@ class User extends \Sledgehammer\GraphObject {
 	/**
 	 * The Threads in this user's inbox.
 	 * Requires "read_mailbox" permissions.
-	 *
-	 * Returns array of thread objects
-	 * @var Collection|GraphObject
+	 * @var Collection|Thread
 	 */
 	public $inbox;
 
@@ -433,9 +422,7 @@ class User extends \Sledgehammer\GraphObject {
 	/**
 	 * All the pages this user has liked.
 	 * Requires "user_likes" or "friends_likes" permissions.
-	 *
-	 * Returns array of objects containing like id, name, category and create_time fields.
-	 * @var Collection|GraphObject
+	 * @var Collection|Page
 	 */
 	public $likes;
 
@@ -460,25 +447,19 @@ class User extends \Sledgehammer\GraphObject {
 	/**
 	 * The movies listed on the user's profile.
 	 * Requires "user_likes" or "friends_likes" permissions.
-	 *
-	 * Returns array of objects containing movie id, name, category and create_time fields.
-	 * @var Collection|GraphObject
+	 * @var Collection|Page
 	 */
 	public $movies;
 
 	/**
 	 * The music listed on the user's profile.
 	 * Requires "user_likes" or "friends_likes" permissions.
-	 *
-	 * Returns array of objects containing music id, name, category and create_time fields.
-	 * @var Collection|GraphObject
+	 * @var Collection|Page
 	 */
 	public $music;
 
 	/**
 	 * The mutual friends between two users.
-	 *
-	 * Returns array of objects containing friend id and name fields.
 	 * @var Collection|User
 	 */
 	public $mutualfriends;
@@ -512,9 +493,7 @@ class User extends \Sledgehammer\GraphObject {
 
 	/**
 	 * The Facebook Credits orders the user placed with an application. See the Credits API for more information.
-	 *
-	 * Returns array of order objects.
-	 * @var Collection|GraphObject
+	 * @var Collection|Order
 	 */
 	public $payments;
 
@@ -590,17 +569,13 @@ class User extends \Sledgehammer\GraphObject {
 
 	/**
 	 * People you're subscribed to.
-	 *
-	 * Returns array of objects containing user id and name fields.
-	 * @var Collection|GraphObject
+	 * @var Collection|User
 	 */
 	public $subscribedto;
 
 	/**
 	 * The user's subscribers.
-	 *
-	 * Returns array of objects containing user id and name fields.
-	 * @var Collection|GraphObject
+	 * @var Collection|User
 	 */
 	public $subscribers;
 
@@ -616,9 +591,7 @@ class User extends \Sledgehammer\GraphObject {
 	/**
 	 * The television listed on the user's profile.
 	 * Requires "user_likes" or "friends_likes" permissions.
-	 *
-	 * Returns array of objects containing television id, name, category and create_time fields.
-	 * @var Collection|GraphObject
+	 * @var Collection|Page
 	 */
 	public $television;
 
@@ -746,13 +719,13 @@ class User extends \Sledgehammer\GraphObject {
 	protected static function getKnownConnections($options = array()) {
 		$connections = array(
 			'accounts' => array(),
-			'achievements' => array(),
+			'achievements' => array('class' => '\Sledgehammer\Facebook\Achievement'),
 			'activities' => array(),
 			'albums' => array(),
 			'apprequests' => array(),
-			'books' => array(),
+			'books' => array('class' => '\Sledgehammer\Facebook\Page'),
 			'checkins' => array(),
-			'events' => array(),
+			'events' => array('class' => '\Sledgehammer\Facebook\Event'),
 			'family' => array(),
 			'feed' => array(),
 			'friendlists' => array(),
@@ -761,29 +734,30 @@ class User extends \Sledgehammer\GraphObject {
 			'games' => array(),
 			'groups' => array(),
 			'home' => array(),
-			'inbox' => array(),
+			'inbox' => array('class' => '\Sledgehammer\Facebook\Thread'),
 			'interests' => array(),
 			'likes' => array('class' => '\Sledgehammer\Facebook\Page'),
 			'links' => array(),
 			'locations' => array(),
-			'movies' => array(),
-			'music' => array(),
+			'movies' => array('class' => '\Sledgehammer\Facebook\Page'),
+			'music' => array('class' => '\Sledgehammer\Facebook\Page'),
 			'mutualfriends' => array('class' => '\Sledgehammer\Facebook\User'),
 			'notes' => array(),
 			'notifications' => array(),
 			'outbox' => array(),
-			'payments' => array(),
+			'payments' => array('class' => '\Sledgehammer\Facebook\Order'),
 			'permissions' => array(),
 			'photos' => array(),
+			'picture' => array(),
 			'pokes' => array(),
-			'posts' => array('class' => '\Sledgehammer\Facebook\Post'),
+			'posts' => array(),
 			'questions' => array(),
 			'scores' => array(),
 			'statuses' => array(),
-			'subscribedto' => array(),
-			'subscribers' => array(),
+			'subscribedto' => array('class' => '\Sledgehammer\Facebook\User'),
+			'subscribers' => array('class' => '\Sledgehammer\Facebook\User'),
 			'tagged' => array(),
-			'television' => array(),
+			'television' => array('class' => '\Sledgehammer\Facebook\Page'),
 			'updates' => array(),
 			'videos' => array(),
 		);
@@ -841,4 +815,5 @@ class User extends \Sledgehammer\GraphObject {
 	}
 
 }
+
 ?>

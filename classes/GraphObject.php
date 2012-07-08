@@ -18,7 +18,8 @@ class GraphObject extends Object {
 	 * new: Object created with id: null
 	 * constuct: Allow new properties to be added.
 	 * id_only: id and parameters are but no api call to fetch fields is made.
-	 * ready: fields are retrieved cia the facebook api.
+	 * partial: Some fields are set, but an  api call based on the id might reveal more fields.
+	 * ready: all (allowed) fields are retrieved.
 	 *
 	 * @var string
 	 */
@@ -96,6 +97,14 @@ class GraphObject extends Object {
 				$this->__set($fields);
 				$this->_state = 'ready';
 				unset($this->_apiParameters);
+				if (array_key_exists($property, $fields)) {
+					return $fields[$property];
+				}
+			}
+			if ($this->_state === 'partial') {
+				$fields = Facebook::get($this->id);
+				$this->__set($fields);
+				$this->_state = 'ready';
 				if (array_key_exists($property, $fields)) {
 					return $fields[$property];
 				}
@@ -178,6 +187,11 @@ class GraphObject extends Object {
 			$response = Facebook::all($this->id.'/'.$connection, $parameters);
 			foreach ($response as $data) {
 				$objects[] = new $class($data);
+			}
+			if (empty($arguments['fields'])) {
+				foreach ($objects as $object) {
+					$object->_state = 'partial';
+				}
 			}
 			return new Collection($objects);
 		}

@@ -224,6 +224,7 @@ class Facebook extends \BaseFacebook {
 				'An active access token must be used to query information about the current user\.', // Not logged in
 				'Error validating access token: User [0-9]+ has not authorized application [0-9]+\.', // Was logged in, but user uninstalled the application.
 				'Error validating access token: Session has expired at unix time [0-9]+. The current unix time is [0-9]+,', // Access token timed out
+				'The session was invalidated explicitly using an API call\.',
 			);
 			$invalidAccessToken = false;
 			$errorMessage = $e->getMessage();

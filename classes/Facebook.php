@@ -11,34 +11,16 @@ namespace Sledgehammer;
 class Facebook extends \BaseFacebook {
 
 	/**
-	 * Total number of API requests
-	 * @var int
-	 */
-	public $requestCount = 0;
-
-	/**
-	 * Total time it took to execute all API calls (in seconds)
-	 * @var float
-	 */
-	public $executionTime = 0;
-
-	/**
 	 * Automaticly redirect to the login page when there is no active access token.
 	 * @var bool
 	 */
 	private $autoLogin = true;
 
 	/**
-	 * All logged facebook requests.
-	 * @var array
+	 * Logs all the facebook requests.
+	 * @var Logger
 	 */
-	public $log = array();
-
-	/**
-	 * Maximum number of request that will be logged.
-	 * @var int
-	 */
-	public $logLimit = 50;
+	public $logger;
 
 	/**
 	 * The default limit for paged results retrieved via Facebook->all().
@@ -106,6 +88,12 @@ class Facebook extends \BaseFacebook {
 		foreach ($options as $property => $value) {
 			$this->$property = $value;
 		}
+		$this->logger = new Logger(array(
+			'identifier' => 'Facebook',
+			'plural' => 'requests',
+			'renderer' => 'Sledgehammer\Facebook::renderLog',
+			'columns' => array('Method', 'Request', 'Duration'),
+		));
 	}
 
 	/**
@@ -264,19 +252,13 @@ class Facebook extends \BaseFacebook {
 	 * @return string The response text
 	 */
 	protected function makeRequest($url, $params, $ch = null) {
-		$this->requestCount++;
 		$start = microtime(true);
 		$result = parent::makeRequest($url, $params, $ch);
-		$executionTime = (microtime(true) - $start);
-		$this->executionTime += $executionTime;
-		// Log request
-		if ($this->requestCount < $this->logLimit) {
-			$this->log[] = array(
-				'url' => $url,
-				'params' => $params,
-				'executionTime' => $executionTime,
-			);
-		}
+		$meta =  array(
+			'params' => $params,
+			'duration' => (microtime(true) - $start)
+		);
+		$this->logger->append($url, $meta);
 		return $result;
 	}
 
@@ -495,6 +477,37 @@ class Facebook extends \BaseFacebook {
 	 */
 	static function delete($path, $parameters = array()) {
 		return self::getInstance()->api($path, 'DELETE', $parameters);
+	}
+
+	/**
+	 * Helper method rendering the $this->logger entries.
+	 *
+	 * @param string $entry url|fql
+	 * @param array $meta
+	 * @return void
+	 */
+	static function renderLog($entry, $meta) {
+		$params = $meta['params'];
+		if ($params['method'] === 'fql.query') {
+			echo '<td>FQL</td><td>', $params['query'], '</td>';
+		} else {
+			echo'<td>', $params['method'], '</td><td>';
+			echo $entry;
+			if (count($params) !== 2) {
+				unset($params['method']);
+				unset($params['access_token']);
+				echo '?', http_build_query($params);
+			}
+		}
+		$duration = $meta['duration'];
+		if ($duration > 2) {
+			$color = 'logentry-alert';
+		} elseif ($duration > 0.9) {
+			$color = 'logentry-warning';
+		} else {
+			$color = 'logentry-debug';
+		}
+		echo '<td class="logentry-number ', $color, '"><b>', format_parsetime($duration), '</b>&nbsp;sec</td>';
 	}
 
 	protected function clearCache() {

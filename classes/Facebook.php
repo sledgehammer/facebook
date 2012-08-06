@@ -488,6 +488,9 @@ class Facebook extends \BaseFacebook {
 	 */
 	static function renderLog($entry, $meta) {
 		$params = $meta['params'];
+		if (empty($params['method'])) {
+			$params['method'] = '';
+		}
 		if ($params['method'] === 'fql.query') {
 			echo '<td>FQL</td><td>', $params['query'], '</td>';
 		} else {

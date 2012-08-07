@@ -14,7 +14,7 @@ class Facebook extends \BaseFacebook {
 	 * Automaticly redirect to the login page when there is no active access token.
 	 * @var bool
 	 */
-	private $autoLogin = true;
+	public $autoLogin = true;
 
 	/**
 	 * Logs all the facebook requests.

@@ -37,6 +37,12 @@ class Facebook extends \BaseFacebook {
 	private $requiredPermissions = array();
 
 	/**
+	 * HTTP Connection (KeepAlive)
+	 * @var cURL
+	 */
+	private $lastRequest;
+
+	/**
 	 * Facebook singleton
 	 * @var Facebook
 	 */
@@ -253,12 +259,25 @@ class Facebook extends \BaseFacebook {
 	 */
 	protected function makeRequest($url, $params, $ch = null) {
 		$start = microtime(true);
-		$result = parent::makeRequest($url, $params, $ch);
-		$meta =  array(
+		$request =  new cURL(array(
+			CURLOPT_URL => $url,
+			CURLOPT_POSTFIELDS => http_build_query($params),
+
+			CURLOPT_CONNECTTIMEOUT => 10,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_TIMEOUT => 60,
+			CURLOPT_USERAGENT => 'Sledgehammer Facebook client',
+			CURLOPT_HTTPHEADER => array(
+				'Connection: Keep-Alive',
+				'Keep-Alive: 60'
+			)
+		));
+		$result = $request->getContent();
+		$this->lastRequest = $request; // Keep a reference to the cURL handle (keeps the connection open)
+		$this->logger->append($url, array(
 			'params' => $params,
 			'duration' => (microtime(true) - $start)
-		);
-		$this->logger->append($url, $meta);
+		));
 		return $result;
 	}
 

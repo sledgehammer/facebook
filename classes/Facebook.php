@@ -258,10 +258,16 @@ class Facebook extends \BaseFacebook {
 	 * @return string The response text
 	 */
 	protected function makeRequest($url, $params, $ch = null) {
+		if ($this->getFileUploadSupport()) {
+			$postfields = $params;
+		  } else {
+			$postfields = http_build_query($params, null, '&');
+		  }
 		$start = microtime(true);
+
 		$request =  new cURL(array(
 			CURLOPT_URL => $url,
-			CURLOPT_POSTFIELDS => http_build_query($params),
+			CURLOPT_POSTFIELDS => $postfields,
 
 			CURLOPT_CONNECTTIMEOUT => 10,
 			CURLOPT_RETURNTRANSFER => true,

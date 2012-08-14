@@ -258,26 +258,15 @@ class Facebook extends \BaseFacebook {
 	 * @return string The response text
 	 */
 	protected function makeRequest($url, $params, $ch = null) {
+		$options = \BaseFacebook::$CURL_OPTS;
+		$options[CURLOPT_URL] = $url;
 		if ($this->getFileUploadSupport()) {
-			$postfields = $params;
+			$options[CURLOPT_POSTFIELDS] = $params;
 		  } else {
-			$postfields = http_build_query($params, null, '&');
+			$options[CURLOPT_POSTFIELDS] = http_build_query($params, null, '&');
 		  }
 		$start = microtime(true);
-
-		$request =  new cURL(array(
-			CURLOPT_URL => $url,
-			CURLOPT_POSTFIELDS => $postfields,
-
-			CURLOPT_CONNECTTIMEOUT => 10,
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_TIMEOUT => 60,
-			CURLOPT_USERAGENT => 'Sledgehammer Facebook client',
-			CURLOPT_HTTPHEADER => array(
-				'Connection: Keep-Alive',
-				'Keep-Alive: 60'
-			)
-		));
+		$request =  new cURL($options);
 		$result = $request->getContent();
 		$this->lastRequest = $request; // Keep a reference to the cURL handle (keeps the connection open)
 		$this->logger->append($url, array(

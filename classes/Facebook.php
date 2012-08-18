@@ -497,18 +497,25 @@ class Facebook extends \BaseFacebook {
 	static function renderLog($entry, $meta) {
 		$params = $meta['params'];
 		if (empty($params['method'])) {
-			$params['method'] = '';
-		}
-		if ($params['method'] === 'fql.query') {
-			echo '<td>FQL</td><td>', $params['query'], '</td>';
+			echo '<td>OAUTH</td><td>', $entry, '? ...</td>';
+		} elseif ($params['method'] === 'fql.query') {
+			echo '<td>FQL</td><td>';
+			echo HTML::element('a', array('href' => 'https://developers.facebook.com/tools/explorer?fql='.urlencode($params['query'])), $params['query']);
+			echo '</td>';
 		} else {
-			echo'<td>', $params['method'], '</td><td>';
-			echo $entry;
+			$method = $params['method'];
+			echo'<td>', $method, '</td><td>';
+			$url = $entry;
 			if (count($params) !== 2) {
 				unset($params['method']);
 				unset($params['access_token']);
-				echo '?', http_build_query($params);
+				$url .= '?'.http_build_query($params);
 			}
+			$content = (strlen($url) < 150) ? $url : substr($url, 0, 150).'&nbsp;...';
+			if (substr($url, 0, 27) === 'https://graph.facebook.com/') {
+				$url = 'https://developers.facebook.com/tools/explorer?method='.$method.'&path='.urlencode(substr($url, 27));
+			}
+			echo HTML::element('a', array('href' => $url, 'target' => '_blank'), $content);
 		}
 		$duration = $meta['duration'];
 		if ($duration > 2) {

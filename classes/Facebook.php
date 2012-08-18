@@ -37,12 +37,6 @@ class Facebook extends \BaseFacebook {
 	private $requiredPermissions = array();
 
 	/**
-	 * HTTP Connection (KeepAlive)
-	 * @var cURL
-	 */
-	private $lastRequest;
-
-	/**
 	 * Facebook singleton
 	 * @var Facebook
 	 */
@@ -96,6 +90,7 @@ class Facebook extends \BaseFacebook {
 		}
 		$this->logger = new Logger(array(
 			'identifier' => 'Facebook',
+			'singular' => 'request',
 			'plural' => 'requests',
 			'renderer' => 'Sledgehammer\Facebook::renderLog',
 			'columns' => array('Method', 'Request', 'Duration'),
@@ -262,13 +257,12 @@ class Facebook extends \BaseFacebook {
 		$options[CURLOPT_URL] = $url;
 		if ($this->getFileUploadSupport()) {
 			$options[CURLOPT_POSTFIELDS] = $params;
-		  } else {
+		} else {
 			$options[CURLOPT_POSTFIELDS] = http_build_query($params, null, '&');
-		  }
+		}
 		$start = microtime(true);
-		$request =  new cURL($options);
+		$request = new cURL($options);
 		$result = $request->getContent();
-		$this->lastRequest = $request; // Keep a reference to the cURL handle (keeps the connection open)
 		$this->logger->append($url, array(
 			'params' => $params,
 			'duration' => (microtime(true) - $start)

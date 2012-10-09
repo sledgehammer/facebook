@@ -667,9 +667,8 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
       if ($e->getMessage() === 'An access token is required to request this resource.') {
         $this->markTestSkipped('Not an desktop application');
 	  }
-
       $this->assertTrue(strpos($e->getMessage(),
-        'Requires session when calling from a desktop app') !== false,
+        'This method is not supported for native apps') !== false,
         'Incorrect exception type thrown when trying to gain ' .
         'insights for desktop app without a user access token.');
     } catch (Exception $e) {

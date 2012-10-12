@@ -1,7 +1,8 @@
 {
 	"name": "sledgehammer/facebook",
-	"type": "sledgehammer-module",
-	"description": "Facebook SDK + An OOP interface to the Graph API",
+	"description": "Sledgehammer Facebook module. An OOP layer on top of the official Facebook SDK.",
+	"type": "library",
+	"license": ["CC-BY-SA-3.0", "Apache2"],
 	"require": {
 		"sledgehammer/core": "*"
 	}

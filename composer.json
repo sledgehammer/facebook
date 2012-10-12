@@ -2,8 +2,9 @@
 	"name": "sledgehammer/facebook",
 	"description": "Sledgehammer Facebook module. An OOP layer on top of the official Facebook SDK.",
 	"type": "library",
-	"license": ["CC-BY-SA-3.0", "Apache2"],
+	"license": "CC-BY-SA-3.0",
 	"require": {
-		"sledgehammer/core": "*"
+		"sledgehammer/core": "*",
+		"facebook/php-sdk": "*"
 	}
 }

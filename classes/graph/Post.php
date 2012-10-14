@@ -1,11 +1,13 @@
 <?php
 /**
- * FacebookPost
+ * Post
  */
 namespace Sledgehammer\Facebook;
 /**
  * A Page in the Graph API.
+ *
  * @link https://developers.facebook.com/docs/reference/api/post/
+ * @package Facebook
  */
 class Post extends \Sledgehammer\GraphObject {
 

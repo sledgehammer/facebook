@@ -5,8 +5,10 @@
 namespace Sledgehammer;
 /**
  * Helper for using the Facebook Open Graph API or executing FQL
+ *
  * @link https://developers.facebook.com/docs/reference/api/
  * @link https://developers.facebook.com/docs/reference/fql/
+ * @package Facebook
  */
 class Facebook extends \BaseFacebook {
 

@@ -263,7 +263,7 @@ class Facebook extends \BaseFacebook {
 			$options[CURLOPT_POSTFIELDS] = http_build_query($params, null, '&');
 		}
 		$start = microtime(true);
-		$request = new cURL($options);
+		$request = new Curl($options);
 		$result = $request->getContent();
 		$this->logger->append($url, array(
 			'params' => $params,
@@ -424,7 +424,7 @@ class Facebook extends \BaseFacebook {
 		}
 		$page = 0;
 		$pages = array();
-		$url = new URL($path);
+		$url = new Url($path);
 		$url->query = $parameters;
 		while (true) {
 			if ($page > $pagerLimit) {
@@ -439,7 +439,7 @@ class Facebook extends \BaseFacebook {
 			}
 			$pages[$page] = $response['data'];
 			if (empty($response['paging']['next']) == false) {
-				$url = new URL($response['paging']['next']);
+				$url = new Url($response['paging']['next']);
 				if (isset($url->query['limit']) && ((count($response['data']) / $url->query['limit']) < 0.10)) { // This page has less than 10% results of the limit?
 					// 90+% is filtered out or there is an error/loop in facebooks paging
 					// Example empty 2nd page: /me/friends
@@ -504,7 +504,7 @@ class Facebook extends \BaseFacebook {
 			echo '<td>OAUTH</td><td>', $entry, '? ...</td>';
 		} elseif ($params['method'] === 'fql.query') {
 			echo '<td>FQL</td><td>';
-			echo HTML::element('a', array('href' => 'https://developers.facebook.com/tools/explorer?fql='.urlencode($params['query'])), $params['query']);
+			echo Html::element('a', array('href' => 'https://developers.facebook.com/tools/explorer?fql='.urlencode($params['query'])), $params['query']);
 			echo '</td>';
 		} else {
 			$method = $params['method'];
@@ -519,7 +519,7 @@ class Facebook extends \BaseFacebook {
 			if (substr($url, 0, 27) === 'https://graph.facebook.com/') {
 				$url = 'https://developers.facebook.com/tools/explorer?method='.$method.'&path='.urlencode(substr($url, 27));
 			}
-			echo HTML::element('a', array('href' => $url, 'target' => '_blank'), $content);
+			echo Html::element('a', array('href' => $url, 'target' => '_blank'), $content);
 		}
 		$duration = $meta['duration'];
 		if ($duration > 2) {
